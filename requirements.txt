@@ -1,0 +1,5 @@
+# Console — zero dependencias externas (stdlib Python 3.11+)
+# Proxima fase (web):
+# fastapi>=0.111
+# uvicorn>=0.29
+# pydantic>=2.7
