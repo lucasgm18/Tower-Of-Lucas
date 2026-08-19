@@ -171,32 +171,32 @@ SHADOW_BOOTS = Item(
 
 COPPER_RING = Item(
     name="Anel de Cobre", slot=ItemSlot.RING, rarity=Rarity.COMMON,
-    hp_bonus=5, atk_bonus=0, defense_bonus=0, speed_bonus=0,
-    description="Anel simples que aumenta um pouco o vigor.",
+    hp_bonus=5, atk_bonus=0, defense_bonus=0, speed_bonus=0, mana_bonus=5,
+    description="Anel simples que aumenta um pouco o vigor e a mana.",
     sprite="anel_cobre.png",
 )
 RING_VITALITY = Item(
     name="Anel da Vitalidade", slot=ItemSlot.RING, rarity=Rarity.UNCOMMON,
-    hp_bonus=12, atk_bonus=0, defense_bonus=0, speed_bonus=0,
-    description="Aumenta o vigor do portador.",
+    hp_bonus=12, atk_bonus=0, defense_bonus=0, speed_bonus=0, mana_bonus=8,
+    description="Aumenta o vigor e a essencia magica do portador.",
     sprite="anel_vitalidade.png",
 )
 RING_POWER = Item(
     name="Anel do Poder", slot=ItemSlot.RING, rarity=Rarity.RARE,
-    hp_bonus=0, atk_bonus=4, defense_bonus=0, speed_bonus=0,
-    description="Concentra força de ataque no punho.",
+    hp_bonus=0, atk_bonus=4, defense_bonus=0, speed_bonus=0, mana_bonus=10,
+    description="Concentra forca de ataque no punho e amplifica magia.",
     sprite="anel_poder.png",
 )
 RING_WARDING = Item(
     name="Anel da Protecao", slot=ItemSlot.RING, rarity=Rarity.RARE,
-    hp_bonus=0, atk_bonus=0, defense_bonus=4, speed_bonus=0,
-    description="Cria um campo protetor sutil.",
+    hp_bonus=0, atk_bonus=0, defense_bonus=4, speed_bonus=0, mana_bonus=12,
+    description="Cria um campo protetor sutil e expande o reservatorio magico.",
     sprite="anel_protecao.png",
 )
 RING_OF_LUCAS = Item(
     name="Anel de Lucas", slot=ItemSlot.RING, rarity=Rarity.EPIC,
-    hp_bonus=15, atk_bonus=5, defense_bonus=3, speed_bonus=3,
-    description="Drop raro do Arquiteto. Concentra o poder da torre.",
+    hp_bonus=15, atk_bonus=5, defense_bonus=3, speed_bonus=3, mana_bonus=20,
+    description="Drop raro do Arquiteto. Concentra o poder absoluto da torre.",
     sprite="anel_lucas.png",
 )
 

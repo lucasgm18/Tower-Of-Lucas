@@ -4,6 +4,7 @@ from core.exp import ExperienceSystem
 from core.inventory import Inventory
 from core.mana_pool import ManaPool
 from core.skill_cooldowns import SkillCooldowns
+from core.gold import Gold
 from data.classes import CharacterClass
 from data.races import Race
 
@@ -19,6 +20,11 @@ class Character:
     inventory: Inventory
     current_floor: int
     cooldowns: SkillCooldowns
+    gold: Gold = None  # type: ignore
+
+    def __post_init__(self) -> None:
+        if self.gold is None:
+            object.__setattr__(self, "gold", Gold.zero())
 
     @classmethod
     def create(cls, name: str, character_class: CharacterClass, race: Race) -> "Character":
@@ -40,10 +46,14 @@ class Character:
             inventory=Inventory.empty(),
             current_floor=1,
             cooldowns=SkillCooldowns.from_skills(character_class.skills),
+            gold=Gold.zero(),
         )
 
     def effective_stats(self) -> Stats:
         return self.inventory.apply_bonuses(self.base_stats)
+
+    def effective_mana_pool(self) -> ManaPool:
+        return self.inventory.apply_mana_bonus(self.mana_pool)
 
     def is_alive(self) -> bool:
         return self.base_stats.is_alive()
@@ -62,6 +72,12 @@ class Character:
 
     def heal(self, amount: int) -> "Character":
         return self._with(base_stats=self.base_stats.heal(amount))
+
+    def earn_gold(self, amount: int) -> "Character":
+        return self._with(gold=self.gold.earn(amount))
+
+    def spend_gold(self, cost: int) -> "Character":
+        return self._with(gold=self.gold.spend(cost))
 
     def gain_exp(self, amount: int) -> "tuple[Character, int]":
         new_exp_system, levels_gained = self.exp_system.add_exp(amount)
@@ -105,11 +121,13 @@ class Character:
             inventory=kwargs.get("inventory", self.inventory),
             current_floor=kwargs.get("current_floor", self.current_floor),
             cooldowns=kwargs.get("cooldowns", self.cooldowns),
+            gold=kwargs.get("gold", self.gold),
         )
 
     def summary(self) -> str:
         stats = self.effective_stats()
-        mana_line = f"  {self.mana_pool}\n" if not self.mana_pool.is_empty() else ""
+        eff_mana = self.effective_mana_pool()
+        mana_line = f"  {eff_mana}\n" if not eff_mana.is_empty() else ""
         items = self.inventory.all_items()
         inv_section = ""
         if items:
@@ -119,6 +137,6 @@ class Character:
             f"  {self.exp_system}\n"
             f"  {stats}\n"
             f"{mana_line}"
-            f"  Andar: {self.current_floor}"
+            f"  Andar: {self.current_floor}  |  {self.gold}"
             f"{inv_section}"
         )

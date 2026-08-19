@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from core.items import Item, ItemSlot
 from core.stats import Stats
+from core.mana_pool import ManaPool
 
 
 @dataclass
@@ -32,6 +33,14 @@ class Inventory:
                 speed=item.speed_bonus,
             )
         return result
+
+    def apply_mana_bonus(self, base: ManaPool) -> ManaPool:
+        total = sum(item.mana_bonus for item in self._equipped.values())
+        if total == 0:
+            return base
+        new_max = base.maximum + total
+        new_current = min(base.current + total, new_max)
+        return ManaPool(current=new_current, maximum=new_max)
 
     def all_items(self) -> list[Item]:
         return list(self._equipped.values())

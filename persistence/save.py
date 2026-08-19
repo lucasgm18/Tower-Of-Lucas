@@ -6,6 +6,7 @@ from core.exp import ExperienceSystem
 from core.inventory import Inventory
 from core.mana_pool import ManaPool
 from core.skill_cooldowns import SkillCooldowns
+from core.gold import Gold
 from core.items import Item, ItemSlot, Rarity
 from data.classes import ALL_CLASSES
 from data.races import ALL_RACES
@@ -34,6 +35,7 @@ def save_character(character: Character) -> None:
         },
         "mana": character.mana_pool.current,
         "max_mana": character.mana_pool.maximum,
+        "gold": character.gold.amount,
         "exp": character.exp_system.current_exp,
         "level": character.exp_system.level,
         "current_floor": character.current_floor,
@@ -43,6 +45,7 @@ def save_character(character: Character) -> None:
                 "name": item.name, "slot": item.slot.value, "rarity": item.rarity.value,
                 "hp_bonus": item.hp_bonus, "atk_bonus": item.atk_bonus,
                 "defense_bonus": item.defense_bonus, "speed_bonus": item.speed_bonus,
+                "mana_bonus": item.mana_bonus, "upgrade_level": item.upgrade_level,
                 "description": item.description, "sprite": item.sprite,
             }
             for item in character.inventory.all_items()
@@ -70,6 +73,7 @@ def load_character(name: str) -> Character | None:
     exp_system = ExperienceSystem(current_exp=data["exp"], level=data["level"])
     mana_pool = ManaPool(current=data.get("mana", 0), maximum=data.get("max_mana", 0))
     cooldowns = SkillCooldowns.from_dict(data.get("skill_cooldowns", {}))
+    gold = Gold(amount=data.get("gold", 0))
 
     inventory = Inventory.empty()
     for item_data in data.get("inventory", []):
@@ -81,6 +85,8 @@ def load_character(name: str) -> Character | None:
             name=item_data["name"], slot=slot, rarity=rarity,
             hp_bonus=item_data["hp_bonus"], atk_bonus=item_data["atk_bonus"],
             defense_bonus=item_data["defense_bonus"], speed_bonus=item_data["speed_bonus"],
+            mana_bonus=item_data.get("mana_bonus", 0),
+            upgrade_level=item_data.get("upgrade_level", 0),
             description=item_data["description"], sprite=item_data.get("sprite", ""),
         ))
 
@@ -94,6 +100,7 @@ def load_character(name: str) -> Character | None:
         inventory=inventory,
         current_floor=data["current_floor"],
         cooldowns=cooldowns,
+        gold=gold,
     )
 
 

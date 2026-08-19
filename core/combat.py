@@ -12,6 +12,7 @@ class CombatResult:
     victory: bool
     character: Character
     exp_gained: int
+    gold_gained: int
     message: str
 
 
@@ -31,7 +32,7 @@ def _damage_enemy(enemy_stats: Stats, damage: int) -> Stats:
     )
 
 
-# ── Efeitos de skill (funções puras) ────────────────────────────────────────
+# ── Efeitos de skill ─────────────────────────────────────────────────────────
 
 SkillEffect = Callable[[Character, Stats, int], tuple[Character, Stats, str]]
 
@@ -68,8 +69,6 @@ _SKILL_DISPATCH: dict[SkillType, SkillEffect] = {
 }
 
 
-# ── Turnos ──────────────────────────────────────────────────────────────────
-
 def _use_skill(
     character: Character,
     enemy_stats: Stats,
@@ -83,6 +82,7 @@ def _use_skill(
 
 def _player_turn(
     character: Character,
+    enemy_name: str,
     enemy_stats: Stats,
     enemy_defense: int,
     arcane_shield: bool,
@@ -93,6 +93,7 @@ def _player_turn(
         if character.skill_is_ready(skill.name) and character.has_mana(skill.mana_cost)
     ]
 
+    ui.show_battle_status(character, enemy_name, enemy_stats)
     ui.show_combat_options(available_skills)
     choice = ui.get_input("> ")
 
@@ -113,9 +114,13 @@ def _player_turn(
     return updated, _damage_enemy(enemy_stats, damage), f"Voce atacou por {damage} de dano!", arcane_shield
 
 
-# ── Loop principal ───────────────────────────────────────────────────────────
-
-def run_combat(character: Character, enemy_name: str, enemy_stats: Stats, exp_reward: int) -> CombatResult:
+def run_combat(
+    character: Character,
+    enemy_name: str,
+    enemy_stats: Stats,
+    exp_reward: int,
+    gold_reward: int = 0,
+) -> CombatResult:
     ui = ConsoleUI()
     current_char = character
     current_enemy = enemy_stats
@@ -125,10 +130,8 @@ def run_combat(character: Character, enemy_name: str, enemy_stats: Stats, exp_re
     ui.show_combat_start(enemy_name)
 
     while current_enemy.is_alive() and current_char.is_alive():
-        ui.show_battle_status(current_char, enemy_name, current_enemy)
-
         current_char, current_enemy, action_msg, arcane_shield = _player_turn(
-            current_char, current_enemy, enemy_stats.defense, arcane_shield
+            current_char, enemy_name, current_enemy, enemy_stats.defense, arcane_shield
         )
         defensive_stance = "Postura Defensiva" in action_msg
         ui.show_message(action_msg)
@@ -147,10 +150,22 @@ def run_combat(character: Character, enemy_name: str, enemy_stats: Stats, exp_re
             ui.show_message(f"{enemy_name} causou {enemy_damage} de dano!")
 
     if current_char.is_alive():
-        updated, levels = current_char.gain_exp(exp_reward)
-        if levels > 0:
-            ui.show_message(f"LEVEL UP! +{levels} nivel(is)! Atributos aumentaram!")
-        return CombatResult(victory=True, character=updated, exp_gained=exp_reward,
-                            message=f"Voce derrotou {enemy_name}!")
+        old_level = current_char.exp_system.level
+        updated, _ = current_char.gain_exp(exp_reward)
+        updated = updated.earn_gold(gold_reward)
+        ui.show_combat_victory(enemy_name, exp_reward, gold_reward, old_level, updated)
+        return CombatResult(
+            victory=True,
+            character=updated,
+            exp_gained=exp_reward,
+            gold_gained=gold_reward,
+            message=f"Voce derrotou {enemy_name}!",
+        )
 
-    return CombatResult(victory=False, character=current_char, exp_gained=0, message="Voce foi derrotado...")
+    return CombatResult(
+        victory=False,
+        character=current_char,
+        exp_gained=0,
+        gold_gained=0,
+        message="Voce foi derrotado...",
+    )
