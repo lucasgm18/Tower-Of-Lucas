@@ -97,10 +97,6 @@ def _player_turn(
     ui.show_combat_options(available_skills)
     choice = ui.get_input("> ")
 
-    if choice == "3":
-        ui.show_character_summary(character)
-        return character, enemy_stats, "Voce analisou o inimigo.", arcane_shield
-
     if choice == "2" and available_skills:
         skill_index = ui.pick_skill(available_skills)
         char, enemy, msg = _use_skill(character, enemy_stats, enemy_defense, available_skills[skill_index])

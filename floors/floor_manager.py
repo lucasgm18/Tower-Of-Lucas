@@ -67,14 +67,14 @@ def run_floor(character: Character, floor: int) -> Character | None:
 
     after_gauntlet = _run_monster_gauntlet(character, floor, ui)
     if after_gauntlet is None:
-        ui.show_death_screen()
+        ui.show_death_screen(character.name)
         return None
 
     after_boss: Character | None = after_gauntlet
     if floor in BOSSES_BY_FLOOR:
         after_boss = _run_boss(after_gauntlet, floor, ui)
         if after_boss is None:
-            ui.show_death_screen()
+            ui.show_death_screen(character.name)
             return None
 
     advanced = after_boss.advance_floor()

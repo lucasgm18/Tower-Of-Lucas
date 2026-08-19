@@ -76,12 +76,7 @@ def _play(ui: ConsoleUI) -> None:
     while current and current.current_floor <= 10:
         result = run_floor(current, current.current_floor)
         if result is None:
-            reset = Character.create(
-                name=current.name,
-                character_class=current.character_class,
-                race=current.race,
-            )
-            save_character(reset)
+            delete_character(current.name)
             return
         current = result
         save_character(current)

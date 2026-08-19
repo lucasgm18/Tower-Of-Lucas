@@ -100,7 +100,7 @@ class ConsoleUI:
         if available_skills:
             names = ", ".join(s.name for s in available_skills)
             print(f"  |  [2] Skill ({names})", end="")
-        print("  |  [3] Ver status")
+        print()
 
     def pick_skill(self, skills: list) -> int:
         print("\n  Skills disponiveis:")
@@ -162,14 +162,14 @@ class ConsoleUI:
         print(f"\n  Item encontrado: {item}")
         return self.get_input("Equipar? [s/n] ")
 
-    def show_death_screen(self) -> None:
+    def show_death_screen(self, character_name: str) -> None:
         print("\n" + SEP)
         print("  ✝  VOCE FOI DERROTADO")
-        print("\n  A torre devora os fracos sem piedade.")
-        print("  Voltando ao inicio... Nivel 1. Sem itens.")
-        print("  A torre aguarda sua proxima tentativa.")
+        print(f"\n  {character_name} sucumbiu às profundezas da torre.")
+        print("\n  Sem piedade. Sem segunda chance.")
+        print("  Este personagem foi apagado para sempre.")
         print(SEP)
-        input("\n  [Enter para continuar...]")
+        input("\n  [Enter para voltar ao menu...]")
 
     def show_victory(self) -> None:
         print("\n" + SEP)
