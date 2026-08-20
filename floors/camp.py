@@ -11,6 +11,11 @@ def _upgrade_item(character: Character, ui: ConsoleUI) -> Character:
 
     items = character.inventory.all_items()
     item = items[index]
+
+    if not item.can_upgrade():
+        ui.show_message("Este item ja esta na qualidade maxima (Epico)!")
+        return character
+
     cost = item.upgrade_cost()
 
     if not character.gold.can_afford(cost):
@@ -36,12 +41,15 @@ def run_camp(character: Character, floor: int) -> Character:
     ui.show_camp_intro(floor)
 
     current = character
+    already_rested = False
+
     while True:
-        choice = ui.show_camp_menu(current)
+        choice = ui.show_camp_menu(current, can_rest=not already_rested)
         if choice == "1":
             current = _upgrade_item(current, ui)
-        elif choice == "2":
+        elif choice == "2" and not already_rested:
             current = _rest(current, ui)
+            already_rested = True
         elif choice == "3":
             break
         else:

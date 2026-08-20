@@ -16,6 +16,13 @@ class Rarity(Enum):
     RARE = "Raro"
     EPIC = "Epico"
 
+    def next_rarity(self) -> "Rarity | None":
+        _order = [Rarity.COMMON, Rarity.UNCOMMON, Rarity.RARE, Rarity.EPIC]
+        idx = _order.index(self)
+        if idx >= len(_order) - 1:
+            return None
+        return _order[idx + 1]
+
     def color_tag(self) -> str:
         colors = {
             Rarity.COMMON:   "[CINZA]",
@@ -49,17 +56,24 @@ class Item:
     upgrade_level: int = 0
     sprite: str = ""
 
+    def can_upgrade(self) -> bool:
+        return self.rarity.next_rarity() is not None
+
     def upgrade_cost(self) -> int:
         return 15 + self.upgrade_level * 15
 
     def upgraded(self) -> "Item":
+        new_rarity = self.rarity.next_rarity()
+        if new_rarity is None:
+            return self
+
         bonus = 2
         level = self.upgrade_level + 1
         base_name = self.name.split(" +")[0]
         return Item(
             name=f"{base_name} +{level}",
             slot=self.slot,
-            rarity=self.rarity,
+            rarity=new_rarity,
             hp_bonus=self.hp_bonus + (bonus if self.hp_bonus > 0 else 0),
             atk_bonus=self.atk_bonus + (bonus if self.atk_bonus > 0 else 0),
             defense_bonus=self.defense_bonus + (bonus if self.defense_bonus > 0 else 0),

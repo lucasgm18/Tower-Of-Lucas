@@ -95,7 +95,16 @@ def _player_turn(
 
     ui.show_battle_status(character, enemy_name, enemy_stats)
     ui.show_combat_options(available_skills)
-    choice = ui.get_input("> ")
+
+    valid_choices = {"1"}
+    if available_skills:
+        valid_choices.add("2")
+
+    while True:
+        choice = ui.get_input("Escolha uma acao (numero): ")
+        if choice in valid_choices:
+            break
+        ui.show_message("Opcao invalida. Escolha um numero valido.")
 
     if choice == "2" and available_skills:
         skill_index = ui.pick_skill(available_skills)
@@ -116,6 +125,7 @@ def run_combat(
     enemy_stats: Stats,
     exp_reward: int,
     gold_reward: int = 0,
+    floor: int | None = None,
 ) -> CombatResult:
     ui = ConsoleUI()
     current_char = character
@@ -123,7 +133,7 @@ def run_combat(
     arcane_shield = False
     defensive_stance = False
 
-    ui.show_combat_start(enemy_name)
+    ui.show_combat_start(enemy_name, floor=floor)
 
     while current_enemy.is_alive() and current_char.is_alive():
         current_char, current_enemy, action_msg, arcane_shield = _player_turn(

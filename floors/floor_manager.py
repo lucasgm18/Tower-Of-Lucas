@@ -22,6 +22,7 @@ def _run_monster_gauntlet(character: Character, floor: int, ui: ConsoleUI) -> Ch
             enemy_stats=monster.stats,
             exp_reward=monster.exp_reward,
             gold_reward=monster.gold_reward,
+            floor=floor,
         )
         if not result.victory:
             return None
@@ -53,6 +54,7 @@ def _run_boss(character: Character, floor: int, ui: ConsoleUI) -> Character | No
         enemy_stats=boss.stats,
         exp_reward=boss.exp_reward,
         gold_reward=boss.gold_reward,
+        floor=floor,
     )
     if not result.victory:
         return None
@@ -80,7 +82,6 @@ def run_floor(character: Character, floor: int) -> Character | None:
     advanced = after_boss.advance_floor()
 
     if floor in CAMP_FLOORS:
-        input("\n  [Enter para entrar no acampamento...]")
         advanced = run_camp(advanced, floor)
 
     ui.show_floor_advance(advanced.current_floor)

@@ -76,8 +76,10 @@ class ConsoleUI:
 
     # ── COMBAT ──────────────────────────────────────────────────────────────
 
-    def show_combat_start(self, enemy_name: str) -> None:
+    def show_combat_start(self, enemy_name: str, floor: int | None = None) -> None:
         print("\n" + SEP)
+        if floor is not None:
+            print(f"  ▶  ANDAR {floor}")
         print(f"  ⚠  Encontrou: {enemy_name.upper()}!")
         print(SEP)
 
@@ -189,11 +191,14 @@ class ConsoleUI:
         print("  'Tenho tempo... e voce tem ouro?'")
         print(SEP)
 
-    def show_camp_menu(self, character: "Character") -> str:
+    def show_camp_menu(self, character: "Character", can_rest: bool = True) -> str:
         items = character.inventory.all_items()
         print(f"\n  Ouro atual: {character.gold}")
         print("\n  [1] Melhorar um item  (custa ouro)")
-        print("  [2] Descansar         (+30% HP, gratis)")
+        if can_rest:
+            print("  [2] Descansar         (+30% HP, gratis)")
+        else:
+            print("  [2] Descansar         (ja descansou)")
         print("  [3] Continuar a subir")
         return self.get_input("> ")
 
@@ -205,9 +210,13 @@ class ConsoleUI:
         print(f"\n  Ouro atual: {character.gold}")
         print("\n  Qual item deseja melhorar?\n")
         for i, item in enumerate(items, 1):
-            cost = item.upgrade_cost()
-            can = "✓" if character.gold.can_afford(cost) else "✗"
-            print(f"    [{i}] {item}  |  Custo: {cost} ouro  [{can}]")
+            if item.can_upgrade():
+                cost = item.upgrade_cost()
+                next_rarity = item.rarity.next_rarity()
+                can = "✓" if character.gold.can_afford(cost) else "✗"
+                print(f"    [{i}] {item}  |  {item.rarity.value} → {next_rarity.value}  |  Custo: {cost} ouro  [{can}]")
+            else:
+                print(f"    [{i}] {item}  |  [MAX]")
         print(f"    [0] Voltar")
         while True:
             raw = self.get_input("Escolha: ")
