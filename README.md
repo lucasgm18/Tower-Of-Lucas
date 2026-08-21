@@ -54,6 +54,7 @@ Tower-Of-Lucas/
 │   ├── combat.py       # Motor de combate com dispatch table
 │   ├── exp.py          # Sistema de experiência e level up
 │   ├── inventory.py    # Inventário imutável
+│   ├── gold.py         # Value Object de ouro
 │   └── items.py        # Item, ItemSlot, Rarity
 ├── data/               # Dados estáticos (frozen dataclasses)
 │   ├── classes.py      # CharacterClass, Skill, SkillType
@@ -61,12 +62,15 @@ Tower-Of-Lucas/
 │   ├── monsters.py     # Monstros por andar
 │   ├── bosses.py       # Bosses com intro narrativa
 │   └── items_db.py     # Banco de itens e drops por andar
-├── floors/             # Lógica de progressão de andares
-│   └── floor_manager.py
-├── ui/                 # Camada de apresentação (isolada do domínio)
-│   └── console_ui.py   # Interface de console — pronta para ser trocada
+├── floors/             # Lógica de progressão e acampamento
+│   ├── floor_manager.py
+│   └── camp.py
 ├── persistence/        # Save/load em JSON
 │   └── save.py
+├── tests/              # Testes unitários automatizados
+│   └── test_rogue_class.py
+├── ui/                 # Camada de apresentação (isolada do domínio)
+│   └── console_ui.py   # Interface de console — pronta para ser trocada
 └── main.py             # Entry point
 ```
 
@@ -85,12 +89,15 @@ Tower-Of-Lucas/
 ## 🧪 Testando
 
 ```bash
-# Smoke test rápido
+# Executar todos os testes unitários
+python3 -m unittest discover -s tests
+
+# Smoke test rápido no console
 python3 -c "
 from core.character import Character
 from data.classes import ALL_CLASSES
 from data.races import ALL_RACES
-c = Character.create('Teste', ALL_CLASSES['Guerreiro'], ALL_RACES['Humano'])
+c = Character.create('Sombra', ALL_CLASSES['Ladino'], ALL_RACES['Humano'])
 print(c.summary())
 "
 ```
@@ -104,8 +111,9 @@ print(c.summary())
 - [x] Inventário com raridades (Comum → Épico)
 - [x] Saves em JSON
 - [x] Refatoração com Object Calisthenics
+- [x] Suíte de testes unitários automatizados
+- [x] Nova classe de personagem (Ladino)
 - [ ] Frontend web (FastAPI + React ou Pygame)
-- [x] Mais classes (Ladino)
 - [ ] Mais raças e monstros
 - [ ] Sistema de habilidades passivas
 
