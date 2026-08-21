@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 
 class SkillSchema(BaseModel):
@@ -9,6 +9,11 @@ class SkillSchema(BaseModel):
     mana_cost: int
     skill_type: str
     sprite: str = ""
+
+
+class SkillStatusSchema(SkillSchema):
+    cooldown_remaining: int
+    is_ready: bool
 
 
 class CharacterClassSchema(BaseModel):
@@ -76,6 +81,7 @@ class CharacterResponse(BaseModel):
     speed: int
     mana: int
     max_mana: int
+    skills: List[SkillStatusSchema] = []
     inventory: List[ItemSchema]
 
 
@@ -93,7 +99,8 @@ class MonsterSchema(BaseModel):
 
 class CombatStartRequest(BaseModel):
     character_name: str
-    floor: int = 1
+    floor: Optional[int] = None
+
 
 
 class CombatStartResponse(BaseModel):

@@ -3,7 +3,6 @@ import React from 'react';
 export default function BattleHUD({
   character,
   monster,
-  skills,
   onAction,
   isAnimating,
   combatLog,
@@ -12,6 +11,7 @@ export default function BattleHUD({
 }) {
   if (!character || !monster) return null;
 
+  const skills = character.skills || [];
   const heroHpPct = Math.max(0, Math.min(100, (character.hp / character.max_hp) * 100));
   const monsterHpPct = Math.max(0, Math.min(100, (monster.hp / monster.max_hp) * 100));
   const heroManaPct = character.max_mana > 0
@@ -26,7 +26,9 @@ export default function BattleHUD({
         <div className="unit-card">
           <div className="unit-name">
             <span>{character.name}</span>
-            <span className="badge">{character.class_name} Nível {character.level}</span>
+            <span className="badge">
+              {character.class_name} Nível {character.level} (Andar {character.current_floor})
+            </span>
           </div>
           <div className="bar-container">
             <div className="bar-fill hp-hero" style={{ width: `${heroHpPct}%` }} />
@@ -69,7 +71,16 @@ export default function BattleHUD({
 
           {skills.map((skill) => {
             const hasMana = character.mana >= skill.mana_cost;
-            const disabled = isAnimating || !hasMana;
+            const isReady = skill.is_ready;
+            const disabled = isAnimating || !isReady || !hasMana;
+
+            let subtext = skill.mana_cost > 0 ? `Mana: ${skill.mana_cost}` : 'Sem custo';
+            if (!isReady) {
+              subtext = `Recarga: ${skill.cooldown_remaining}t`;
+            } else if (!hasMana) {
+              subtext = `Mana Insuf. (${skill.mana_cost})`;
+            }
+
             return (
               <button
                 key={skill.name}
@@ -78,17 +89,19 @@ export default function BattleHUD({
                 onClick={() => onAction('skill', skill.name)}
               >
                 <span>✨ {skill.name}</span>
-                <span className="subtext">
-                  {skill.mana_cost > 0 ? `Mana: ${skill.mana_cost}` : 'Sem custo'}
-                </span>
+                <span className="subtext">{subtext}</span>
               </button>
             );
           })}
         </div>
       ) : (
         <div className="actions-row">
-          <button className="btn-action" style={{ border: '1px solid #fbbf24', background: 'linear-gradient(135deg, #78350f, #451a03)' }} onClick={onRestartCombat}>
-            🔄 Próxima Batalha
+          <button
+            className="btn-action"
+            style={{ border: '1px solid #fbbf24', background: 'linear-gradient(135deg, #78350f, #451a03)' }}
+            onClick={onRestartCombat}
+          >
+            🔄 Próxima Batalha (Andar {character.current_floor})
           </button>
         </div>
       )}

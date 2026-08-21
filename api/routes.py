@@ -8,6 +8,7 @@ from data.races import ALL_RACES
 from data.monsters import MONSTERS_BY_FLOOR, Monster
 from core.character import Character
 from core.stats import Stats
+from core.skill_cooldowns import SkillCooldowns
 from core.combat import _resolve_attack, _damage_enemy, _use_skill
 from persistence.save import (
     save_character,
@@ -19,6 +20,7 @@ from api.schemas import (
     CharacterClassSchema,
     RaceSchema,
     SkillSchema,
+    SkillStatusSchema,
     CharacterCreateRequest,
     CharacterResponse,
     ItemSchema,
@@ -161,6 +163,19 @@ def _build_character_response(character: Character) -> CharacterResponse:
         )
         for item in character.inventory.all_items()
     ]
+    skill_statuses = [
+        SkillStatusSchema(
+            name=s.name,
+            description=s.description,
+            cooldown=s.cooldown,
+            mana_cost=s.mana_cost,
+            skill_type=s.skill_type.name,
+            sprite=s.sprite,
+            cooldown_remaining=character.cooldowns.as_dict().get(s.name, 0),
+            is_ready=character.skill_is_ready(s.name),
+        )
+        for s in character.character_class.skills
+    ]
     return CharacterResponse(
         name=character.name,
         class_name=character.character_class.name,
@@ -176,6 +191,7 @@ def _build_character_response(character: Character) -> CharacterResponse:
         speed=eff.speed,
         mana=mana.current,
         max_mana=mana.maximum,
+        skills=skill_statuses,
         inventory=items,
     )
 
@@ -189,15 +205,20 @@ def start_combat(req: CombatStartRequest) -> CombatStartResponse:
             detail=f"Personagem '{req.character_name}' nao encontrado.",
         )
 
-    floor_monsters = MONSTERS_BY_FLOOR.get(req.floor, list(MONSTERS_BY_FLOOR[1]))
+    target_floor = req.floor if req.floor is not None else character.current_floor
+    floor_monsters = MONSTERS_BY_FLOOR.get(target_floor, list(MONSTERS_BY_FLOOR[1]))
     monster = random.choice(floor_monsters)
+
+    # Regra de Gameplay: Cada nova batalha começa com as habilidades resetadas (prontas)
+    fresh_cooldowns = SkillCooldowns.from_skills(character.character_class.skills)
+    fresh_char = character._with(cooldowns=fresh_cooldowns)
 
     combat_id = f"combat_{uuid.uuid4().hex[:8]}"
     ACTIVE_COMBATS[combat_id] = {
         "combat_id": combat_id,
-        "character": character,
+        "character": fresh_char,
         "monster": monster,
-        "floor": req.floor,
+        "floor": target_floor,
         "arcane_shield": False,
     }
 
@@ -215,7 +236,7 @@ def start_combat(req: CombatStartRequest) -> CombatStartResponse:
 
     return CombatStartResponse(
         combat_id=combat_id,
-        character=_build_character_response(character),
+        character=_build_character_response(fresh_char),
         monster=monster_schema,
     )
 
@@ -244,10 +265,24 @@ def combat_action(req: CombatActionRequest) -> CombatActionResponse:
             (s for s in character.character_class.skills if s.name == req.skill_name),
             None,
         )
-        if not matched_skill or not character.skill_is_ready(matched_skill.name) or not character.has_mana(matched_skill.mana_cost):
+        if not matched_skill:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Habilidade '{req.skill_name}' indisponivel ou mana insuficiente.",
+                detail=f"Habilidade '{req.skill_name}' nao encontrada para esta classe.",
+            )
+
+        if not character.skill_is_ready(matched_skill.name):
+            cd_rem = character.cooldowns.as_dict().get(matched_skill.name, 0)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Habilidade '{req.skill_name}' em recarga. Faltam {cd_rem} turno(s).",
+            )
+
+        if not character.has_mana(matched_skill.mana_cost):
+            current_mana = character.effective_mana_pool().current
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Mana insuficiente para '{req.skill_name}'. Requer {matched_skill.mana_cost}, voce possui {current_mana}.",
             )
 
         player_skill_used = matched_skill.name
@@ -293,6 +328,8 @@ def combat_action(req: CombatActionRequest) -> CombatActionResponse:
         combat_log.append(f"Voce derrotou {monster.name}! Ganhou {monster.exp_reward} XP e {monster.gold_reward} Ouro.")
         updated_char, _ = character.gain_exp(monster.exp_reward)
         updated_char = updated_char.earn_gold(monster.gold_reward)
+        # Progressão de andar na vitória
+        updated_char = updated_char.advance_floor()
         save_character(updated_char)
         del ACTIVE_COMBATS[req.combat_id]
         return CombatActionResponse(

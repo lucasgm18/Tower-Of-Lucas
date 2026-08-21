@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PhaserGame from './components/PhaserGame';
 import BattleHUD from './components/BattleHUD';
-import { fetchCharacters, createCharacter, startCombat, executeCombatAction } from './api/client';
+import CharacterModal from './components/CharacterModal';
+import { fetchCharacters, fetchCharacterDetails, startCombat, executeCombatAction } from './api/client';
 import eventBridge from './game/EventBridge';
 
 export default function App() {
@@ -10,10 +11,10 @@ export default function App() {
   const [combatSession, setCombatSession] = useState(null);
   const [characterState, setCharacterState] = useState(null);
   const [monsterState, setMonsterState] = useState(null);
-  const [skills, setSkills] = useState([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [combatLog, setCombatLog] = useState([]);
   const [isFinished, setIsFinished] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
 
   // 1. Carregar lista de personagens ao montar
@@ -25,8 +26,10 @@ export default function App() {
     try {
       const list = await fetchCharacters();
       setCharacterList(list);
-      if (list.length > 0) {
+      if (list.length > 0 && !characterName) {
         setCharacterName(list[0]);
+      } else if (list.length === 0) {
+        setShowModal(true);
       }
     } catch (err) {
       setError('Falha ao conectar com o backend Python. Verifique se o server FastAPI está rodando.');
@@ -34,32 +37,27 @@ export default function App() {
   }
 
   // 2. Iniciar nova batalha via API
-  async function handleStartBattle() {
-    let nameToUse = characterName;
+  async function handleStartBattle(selectedName = null) {
+    let nameToUse = selectedName || characterName;
     setError('');
 
-    try {
-      if (!nameToUse) {
-        // Criar personagem padrao se nenhum existir
-        const newChar = await createCharacter('SombraWeb', 'Ladino', 'Humano');
-        nameToUse = newChar.name;
-        setCharacterName(nameToUse);
-        await loadCharacters();
-      }
+    if (!nameToUse) {
+      setShowModal(true);
+      return;
+    }
 
-      const session = await startCombat(nameToUse, 1);
+    try {
+      // Omitir andar para que o backend use o character.current_floor oficial
+      const session = await startCombat(nameToUse);
       setCombatSession(session);
+      setCharacterName(nameToUse);
       setCharacterState(session.character);
       setMonsterState(session.monster);
-      setCombatLog([`Início da batalha! Monstro ${session.monster.name} apareceu no Andar 1.`]);
-      setIsFinished(false);
-
-      // Buscar skills do personagem (ex: Ladino / Guerreiro)
-      // Como o backend nos dá class_name, mockamos as skills padrão ou recuperamos
-      setSkills([
-        { name: 'Ataque Furtivo', mana_cost: 5 },
-        { name: 'Passo das Sombras', mana_cost: 5 },
+      setCombatLog([
+        `Batalha Iniciada! ${session.monster.name} apareceu no Andar ${session.character.current_floor}.`,
       ]);
+      setIsFinished(false);
+      setShowModal(false);
 
       // Emitir evento para o Phaser posicionar sprites
       eventBridge.emit('INIT_BATTLE', session);
@@ -73,6 +71,8 @@ export default function App() {
     if (!combatSession || isAnimating || isFinished) return;
 
     setIsAnimating(true);
+    setError('');
+
     try {
       const res = await executeCombatAction(combatSession.combat_id, actionType, skillName);
 
@@ -80,15 +80,22 @@ export default function App() {
       eventBridge.emit('PLAY_TURN_ANIMATIONS', res);
 
       // Esperar animação do Phaser terminar antes de atualizar estado no HUD React
-      const onAnimationDone = () => {
+      const onAnimationDone = async () => {
         eventBridge.off('TURN_ANIMATION_COMPLETE', onAnimationDone);
 
-        // Atualizar estado visual do React
-        setCharacterState((prev) => ({
-          ...prev,
-          hp: res.player_hp_after,
-          mana: res.player_mana_after,
-        }));
+        // Buscar estado atualizado e oficial do personagem no backend
+        try {
+          const charDetails = await fetchCharacterDetails(characterState.name);
+          setCharacterState(charDetails);
+        } catch {
+          // Fallback caso a requisição de detalhes falhe
+          setCharacterState((prev) => ({
+            ...prev,
+            hp: res.player_hp_after,
+            mana: res.player_mana_after,
+          }));
+        }
+
         setMonsterState((prev) => ({
           ...prev,
           hp: res.enemy_hp_after,
@@ -118,37 +125,30 @@ export default function App() {
           TOWER OF LUCAS 2D
         </h1>
 
-        {!combatSession ? (
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.9rem', color: '#9ca3af' }}>Heroi:</label>
-            {characterList.length > 0 ? (
-              <select
-                value={characterName}
-                onChange={(e) => setCharacterName(e.target.value)}
-                style={{ padding: '6px 12px', borderRadius: '6px', background: '#111827', color: '#fff', border: '1px solid #374151' }}
-              >
-                {characterList.map((name) => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-            ) : (
-              <span style={{ fontSize: '0.85rem', color: '#fbbf24' }}>Criará "SombraWeb" (Ladino)</span>
-            )}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowModal(true)}
+            style={{ padding: '6px 12px', borderRadius: '6px', background: '#374151', color: '#fff', border: '1px solid #4b5563', cursor: 'pointer', fontSize: '0.85rem' }}
+          >
+            👤 {characterName ? `Herói: ${characterName}` : 'Selecionar Herói'}
+          </button>
+
+          {!combatSession ? (
             <button
-              onClick={handleStartBattle}
+              onClick={() => handleStartBattle()}
               style={{ padding: '8px 16px', borderRadius: '6px', background: '#10b981', color: '#fff', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
             >
               🚀 Entrar na Batalha
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setCombatSession(null)}
-            style={{ padding: '6px 12px', borderRadius: '6px', background: '#374151', color: '#9ca3af', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-          >
-            ❌ Sair do Combate
-          </button>
-        )}
+          ) : (
+            <button
+              onClick={() => setCombatSession(null)}
+              style={{ padding: '6px 12px', borderRadius: '6px', background: '#374151', color: '#9ca3af', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+            >
+              ❌ Sair do Combate
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -165,12 +165,22 @@ export default function App() {
         <BattleHUD
           character={characterState}
           monster={monsterState}
-          skills={skills}
           onAction={handleCombatAction}
           isAnimating={isAnimating}
           combatLog={combatLog}
           isFinished={isFinished}
-          onRestartCombat={handleStartBattle}
+          onRestartCombat={() => handleStartBattle()}
+        />
+      )}
+
+      {/* Modal de Criação / Seleção de Personagem */}
+      {showModal && (
+        <CharacterModal
+          onSelectCharacter={(name) => {
+            setCharacterName(name);
+            handleStartBattle(name);
+          }}
+          onClose={() => setShowModal(false)}
         />
       )}
     </div>
