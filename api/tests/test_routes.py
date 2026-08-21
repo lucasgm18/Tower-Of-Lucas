@@ -1,8 +1,6 @@
 import unittest
-import os
 from fastapi.testclient import TestClient
 from api.app import app
-from persistence.database import DEFAULT_DB_PATH
 
 client = TestClient(app)
 
@@ -11,7 +9,7 @@ class TestAPIRoutes(unittest.TestCase):
 
     def tearDown(self) -> None:
         # Clean up test characters if created
-        client.delete("/api/characters/APITester")
+        client.delete("/api/characters/HeroiLadino")
 
     def test_root_endpoint(self) -> None:
         response = client.get("/")
@@ -40,14 +38,14 @@ class TestAPIRoutes(unittest.TestCase):
         create_res = client.post(
             "/api/characters",
             json={
-                "name": "APITester",
+                "name": "HeroiLadino",
                 "class_name": "Ladino",
                 "race_name": "Humano",
             },
         )
         self.assertEqual(create_res.status_code, 201)
         data = create_res.json()
-        self.assertEqual(data["name"], "APITester")
+        self.assertEqual(data["name"], "HeroiLadino")
         self.assertEqual(data["class_name"], "Ladino")
         self.assertEqual(data["race_name"], "Humano")
         self.assertEqual(data["current_floor"], 1)
@@ -55,24 +53,24 @@ class TestAPIRoutes(unittest.TestCase):
         # 2. Get character list via GET
         list_res = client.get("/api/characters")
         self.assertEqual(list_res.status_code, 200)
-        self.assertIn("APITester", list_res.json())
+        self.assertIn("HeroiLadino", list_res.json())
 
         # 3. Get character details via GET
-        get_res = client.get("/api/characters/APITester")
+        get_res = client.get("/api/characters/HeroiLadino")
         self.assertEqual(get_res.status_code, 200)
-        self.assertEqual(get_res.json()["name"], "APITester")
+        self.assertEqual(get_res.json()["name"], "HeroiLadino")
 
         # 4. Advance floor via POST
-        advance_res = client.post("/api/characters/APITester/advance")
+        advance_res = client.post("/api/characters/HeroiLadino/advance")
         self.assertEqual(advance_res.status_code, 200)
         self.assertEqual(advance_res.json()["current_floor"], 2)
 
         # 5. Delete character via DELETE
-        del_res = client.delete("/api/characters/APITester")
+        del_res = client.delete("/api/characters/HeroiLadino")
         self.assertEqual(del_res.status_code, 204)
 
         # 6. Verify non-existent
-        get_after_del = client.get("/api/characters/APITester")
+        get_after_del = client.get("/api/characters/HeroiLadino")
         self.assertEqual(get_after_del.status_code, 404)
 
 

@@ -57,39 +57,41 @@ O projeto segue **Object Calisthenics** e está organizado em pacotes com respon
 
 ```
 Tower-Of-Lucas/
-├── api/                # API REST com FastAPI
-│   ├── app.py          # Instância principal e rotas
-│   ├── routes.py       # Endpoints REST (/api/classes, /api/characters)
-│   └── schemas.py      # Schemas Pydantic de requisição/resposta
-├── core/               # Lógica de domínio (imutável)
-│   ├── character.py    # Entidade principal do jogador
-│   ├── stats.py        # Value Object de atributos
-│   ├── mana_pool.py    # Value Object de mana (current + maximum)
-│   ├── skill_cooldowns.py  # First-class collection de cooldowns
-│   ├── combat.py       # Motor de combate com dispatch table
-│   ├── exp.py          # Sistema de experiência e level up
-│   ├── inventory.py    # Inventário imutável
-│   ├── gold.py         # Value Object de ouro
-│   └── items.py        # Item, ItemSlot, Rarity
-├── data/               # Dados estáticos (frozen dataclasses)
-│   ├── classes.py      # CharacterClass, Skill, SkillType
-│   ├── races.py        # Race e bônus por raça
-│   ├── monsters.py     # Monstros por andar
-│   ├── bosses.py       # Bosses com intro narrativa
-│   └── items_db.py     # Banco de itens e drops por andar
-├── floors/             # Lógica de progressão e acampamento
+├── api/                    # API REST com FastAPI
+│   ├── app.py              # Instância principal FastAPI
+│   ├── routes.py           # Endpoints REST (/api/classes, /api/characters)
+│   ├── schemas.py          # Schemas Pydantic de requisição/resposta
+│   └── tests/
+│       └── test_routes.py  # Testes de integração dos endpoints
+├── core/                   # Lógica de domínio do jogo
+│   ├── character.py        # Entidade principal do jogador
+│   ├── stats.py            # Value Object de atributos
+│   ├── mana_pool.py        # Value Object de mana
+│   ├── skill_cooldowns.py  # Gerenciador de cooldowns
+│   ├── combat.py           # Motor de combate e dispatch table
+│   ├── exp.py              # Sistema de experiência e level up
+│   ├── inventory.py        # Inventário imutável
+│   ├── gold.py             # Value Object de ouro
+│   └── items.py            # Item, ItemSlot, Rarity
+├── data/                   # Dados estáticos do jogo
+│   ├── classes.py          # Definição do Ladino, Mago e Guerreiro
+│   ├── races.py            # Raças e bônus raciais
+│   ├── monsters.py         # Monstros por andar
+│   ├── bosses.py           # Bosses com narrativa
+│   ├── items_db.py         # Banco de itens e drops
+│   └── tests/
+│       └── test_rogue_class.py  # Testes da classe Ladino
+├── floors/                 # Lógica de progressão e acampamento
 │   ├── floor_manager.py
 │   └── camp.py
-├── persistence/        # Persistência em SQLite (substitui JSON)
-│   ├── database.py     # Conexão e criação de tabelas SQLite
-│   └── save.py         # CRUD de Character com suporte relacional
-├── tests/              # Testes unitários e de integração
-│   ├── test_rogue_class.py
-│   ├── test_sqlite_persistence.py
-│   └── test_api_routes.py
-├── ui/                 # Camada de apresentação (isolada do domínio)
-│   └── console_ui.py   # Interface de console — pronta para ser trocada
-└── main.py             # Entry point do console
+├── persistence/            # Persistência relacional SQLite
+│   ├── database.py         # Conexão e schema SQLite
+│   ├── save.py             # CRUD de salvamento do jogo
+│   └── tests/
+│       └── test_sqlite.py  # Testes de persistência SQLite
+├── ui/                     # Camada de apresentação de console
+│   └── console_ui.py       # Interface de console
+└── main.py                 # Entry point do console
 ```
 
 ### Princípios aplicados (Object Calisthenics)
@@ -107,8 +109,8 @@ Tower-Of-Lucas/
 ## 🧪 Testando
 
 ```bash
-# Executar todos os testes unitários e de integração API/SQLite
-python3 -m unittest discover -s tests
+# Executar todos os testes (co-localizados por módulo)
+python3 -m unittest discover -s . -p "test_*.py"
 
 # Smoke test rápido no console
 python3 -c "

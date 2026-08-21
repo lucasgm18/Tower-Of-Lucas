@@ -60,7 +60,7 @@ class TestRogueClass(unittest.TestCase):
         self.assertIn("Passo das Sombras ativado!", msg)
 
     def test_save_and_load_rogue(self) -> None:
-        char_name = "TestRogueSave"
+        char_name = "LadinoSalvo"
         try:
             rogue = Character.create(char_name, ALL_CLASSES["Ladino"], ALL_RACES["Humano"])
             save_character(rogue)
