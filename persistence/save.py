@@ -1,5 +1,4 @@
 import json
-import os
 from core.character import Character
 from core.stats import Stats
 from core.exp import ExperienceSystem
@@ -10,111 +9,165 @@ from core.gold import Gold
 from core.items import Item, ItemSlot, Rarity
 from data.classes import ALL_CLASSES
 from data.races import ALL_RACES
-
-SAVE_DIR = "saves"
-
-
-def _ensure_save_dir() -> None:
-    os.makedirs(SAVE_DIR, exist_ok=True)
+from persistence.database import get_connection, init_db, DEFAULT_DB_PATH
 
 
-def _save_path(name: str) -> str:
-    return os.path.join(SAVE_DIR, f"{name.replace(' ', '_').lower()}.json")
-
-
-def save_character(character: Character) -> None:
-    _ensure_save_dir()
+def save_character(character: Character, db_path: str = DEFAULT_DB_PATH) -> None:
+    init_db(db_path)
     stats = character.base_stats
-    data = {
-        "name": character.name,
-        "class_name": character.character_class.name,
-        "race_name": character.race.name,
-        "stats": {
-            "hp": stats.hp, "max_hp": stats.max_hp,
-            "atk": stats.atk, "defense": stats.defense, "speed": stats.speed,
-        },
-        "mana": character.mana_pool.current,
-        "max_mana": character.mana_pool.maximum,
-        "gold": character.gold.amount,
-        "exp": character.exp_system.current_exp,
-        "level": character.exp_system.level,
-        "current_floor": character.current_floor,
-        "skill_cooldowns": character.cooldowns.as_dict(),
-        "inventory": [
-            {
-                "name": item.name, "slot": item.slot.value, "rarity": item.rarity.value,
-                "hp_bonus": item.hp_bonus, "atk_bonus": item.atk_bonus,
-                "defense_bonus": item.defense_bonus, "speed_bonus": item.speed_bonus,
-                "mana_bonus": item.mana_bonus, "upgrade_level": item.upgrade_level,
-                "description": item.description, "sprite": item.sprite,
-            }
-            for item in character.inventory.all_items()
-        ],
-    }
-    with open(_save_path(character.name), "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    conn = get_connection(db_path)
+    with conn:
+        conn.execute(
+            """
+            INSERT INTO characters (
+                name, class_name, race_name, hp, max_hp, atk, defense, speed,
+                mana, max_mana, gold, exp, level, current_floor, skill_cooldowns
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                class_name = excluded.class_name,
+                race_name = excluded.race_name,
+                hp = excluded.hp,
+                max_hp = excluded.max_hp,
+                atk = excluded.atk,
+                defense = excluded.defense,
+                speed = excluded.speed,
+                mana = excluded.mana,
+                max_mana = excluded.max_mana,
+                gold = excluded.gold,
+                exp = excluded.exp,
+                level = excluded.level,
+                current_floor = excluded.current_floor,
+                skill_cooldowns = excluded.skill_cooldowns
+            """,
+            (
+                character.name,
+                character.character_class.name,
+                character.race.name,
+                stats.hp,
+                stats.max_hp,
+                stats.atk,
+                stats.defense,
+                stats.speed,
+                character.mana_pool.current,
+                character.mana_pool.maximum,
+                character.gold.amount,
+                character.exp_system.current_exp,
+                character.exp_system.level,
+                character.current_floor,
+                json.dumps(character.cooldowns.as_dict()),
+            ),
+        )
+
+        conn.execute("DELETE FROM inventory_items WHERE character_name = ?", (character.name,))
+        for item in character.inventory.all_items():
+            conn.execute(
+                """
+                INSERT INTO inventory_items (
+                    character_name, name, slot, rarity, hp_bonus, atk_bonus,
+                    defense_bonus, speed_bonus, mana_bonus, upgrade_level, description, sprite
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    character.name,
+                    item.name,
+                    item.slot.value,
+                    item.rarity.value,
+                    item.hp_bonus,
+                    item.atk_bonus,
+                    item.defense_bonus,
+                    item.speed_bonus,
+                    item.mana_bonus,
+                    item.upgrade_level,
+                    item.description,
+                    item.sprite,
+                ),
+            )
+    conn.close()
 
 
-def load_character(name: str) -> Character | None:
-    path = _save_path(name)
-    if not os.path.exists(path):
+def load_character(name: str, db_path: str = DEFAULT_DB_PATH) -> Character | None:
+    init_db(db_path)
+    conn = get_connection(db_path)
+    cursor = conn.execute("SELECT * FROM characters WHERE name = ?", (name,))
+    row = cursor.fetchone()
+    if row is None:
+        conn.close()
         return None
 
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    char_class = ALL_CLASSES.get(data["class_name"])
-    race = ALL_RACES.get(data["race_name"])
+    char_class = ALL_CLASSES.get(row["class_name"])
+    race = ALL_RACES.get(row["race_name"])
     if not char_class or not race:
+        conn.close()
         return None
 
-    raw = data["stats"]
-    stats = Stats(hp=raw["hp"], max_hp=raw["max_hp"], atk=raw["atk"], defense=raw["defense"], speed=raw["speed"])
-    exp_system = ExperienceSystem(current_exp=data["exp"], level=data["level"])
-    mana_pool = ManaPool(current=data.get("mana", 0), maximum=data.get("max_mana", 0))
-    cooldowns = SkillCooldowns.from_dict(data.get("skill_cooldowns", {}))
-    gold = Gold(amount=data.get("gold", 0))
+    stats = Stats(
+        hp=row["hp"],
+        max_hp=row["max_hp"],
+        atk=row["atk"],
+        defense=row["defense"],
+        speed=row["speed"],
+    )
+    exp_system = ExperienceSystem(current_exp=row["exp"], level=row["level"])
+    mana_pool = ManaPool(current=row["mana"], maximum=row["max_mana"])
+    cooldowns = SkillCooldowns.from_dict(json.loads(row["skill_cooldowns"]))
+    gold = Gold(amount=row["gold"])
 
+    item_cursor = conn.execute(
+        "SELECT * FROM inventory_items WHERE character_name = ?", (name,)
+    )
     inventory = Inventory.empty()
-    for item_data in data.get("inventory", []):
-        slot = next((sl for sl in ItemSlot if sl.value == item_data["slot"]), None)
-        rarity = next((r for r in Rarity if r.value == item_data.get("rarity", "Comum")), Rarity.COMMON)
+    for item_row in item_cursor.fetchall():
+        slot = next((sl for sl in ItemSlot if sl.value == item_row["slot"]), None)
+        rarity = next(
+            (r for r in Rarity if r.value == item_row["rarity"]), Rarity.COMMON
+        )
         if slot is None:
             continue
-        inventory = inventory.equip(Item(
-            name=item_data["name"], slot=slot, rarity=rarity,
-            hp_bonus=item_data["hp_bonus"], atk_bonus=item_data["atk_bonus"],
-            defense_bonus=item_data["defense_bonus"], speed_bonus=item_data["speed_bonus"],
-            mana_bonus=item_data.get("mana_bonus", 0),
-            upgrade_level=item_data.get("upgrade_level", 0),
-            description=item_data["description"], sprite=item_data.get("sprite", ""),
-        ))
+        inventory = inventory.equip(
+            Item(
+                name=item_row["name"],
+                slot=slot,
+                rarity=rarity,
+                hp_bonus=item_row["hp_bonus"],
+                atk_bonus=item_row["atk_bonus"],
+                defense_bonus=item_row["defense_bonus"],
+                speed_bonus=item_row["speed_bonus"],
+                mana_bonus=item_row["mana_bonus"],
+                upgrade_level=item_row["upgrade_level"],
+                description=item_row["description"],
+                sprite=item_row["sprite"],
+            )
+        )
 
+    conn.close()
     return Character(
-        name=data["name"],
+        name=row["name"],
         character_class=char_class,
         race=race,
         base_stats=stats,
         mana_pool=mana_pool,
         exp_system=exp_system,
         inventory=inventory,
-        current_floor=data["current_floor"],
+        current_floor=row["current_floor"],
         cooldowns=cooldowns,
         gold=gold,
     )
 
 
-def list_saved_characters() -> list[str]:
-    _ensure_save_dir()
-    return [
-        f.replace(".json", "").replace("_", " ").title()
-        for f in os.listdir(SAVE_DIR) if f.endswith(".json")
-    ]
+def list_saved_characters(db_path: str = DEFAULT_DB_PATH) -> list[str]:
+    init_db(db_path)
+    conn = get_connection(db_path)
+    cursor = conn.execute("SELECT name FROM characters ORDER BY created_at DESC")
+    names = [row["name"] for row in cursor.fetchall()]
+    conn.close()
+    return names
 
 
-def delete_character(name: str) -> bool:
-    path = _save_path(name)
-    if not os.path.exists(path):
-        return False
-    os.remove(path)
-    return True
+def delete_character(name: str, db_path: str = DEFAULT_DB_PATH) -> bool:
+    init_db(db_path)
+    conn = get_connection(db_path)
+    with conn:
+        cursor = conn.execute("DELETE FROM characters WHERE name = ?", (name,))
+        deleted = cursor.rowcount > 0
+    conn.close()
+    return deleted

@@ -2,6 +2,7 @@ from core.character import Character
 from data.classes import ALL_CLASSES
 from data.races import ALL_RACES
 from floors.floor_manager import run_floor
+from persistence.database import init_db
 from persistence.save import save_character, load_character, list_saved_characters, delete_character
 from ui.console_ui import ConsoleUI
 
@@ -86,6 +87,7 @@ def _play(ui: ConsoleUI) -> None:
 
 
 def main() -> None:
+    init_db()
     ui = ConsoleUI()
     actions = {
         "1": lambda: _play(ui),

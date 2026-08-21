@@ -6,14 +6,25 @@
 
 ## 🎮 Como jogar
 
+### 🖥️ Modo Console (Terminal)
 ```bash
 # Clone o repositório
 git clone https://github.com/lucasgm18/Tower-Of-Lucas.git
 cd Tower-Of-Lucas
 
-# Rode o jogo (Python 3.11+, sem dependências externas)
+# Rode o jogo no terminal (Python 3.11+)
 python3 main.py
 ```
+
+### 🌐 Modo Servidor API REST (FastAPI)
+```bash
+# Instale as dependências da API
+pip install -r requirements.txt
+
+# Inicie o servidor FastAPI
+uvicorn api.app:app --reload
+```
+Acesse a documentação interativa em **http://127.0.0.1:8000/docs** (Swagger UI).
 
 ### Fluxo básico
 1. **Crie um personagem** — escolha classe e raça
@@ -46,6 +57,10 @@ O projeto segue **Object Calisthenics** e está organizado em pacotes com respon
 
 ```
 Tower-Of-Lucas/
+├── api/                # API REST com FastAPI
+│   ├── app.py          # Instância principal e rotas
+│   ├── routes.py       # Endpoints REST (/api/classes, /api/characters)
+│   └── schemas.py      # Schemas Pydantic de requisição/resposta
 ├── core/               # Lógica de domínio (imutável)
 │   ├── character.py    # Entidade principal do jogador
 │   ├── stats.py        # Value Object de atributos
@@ -65,13 +80,16 @@ Tower-Of-Lucas/
 ├── floors/             # Lógica de progressão e acampamento
 │   ├── floor_manager.py
 │   └── camp.py
-├── persistence/        # Save/load em JSON
-│   └── save.py
-├── tests/              # Testes unitários automatizados
-│   └── test_rogue_class.py
+├── persistence/        # Persistência em SQLite (substitui JSON)
+│   ├── database.py     # Conexão e criação de tabelas SQLite
+│   └── save.py         # CRUD de Character com suporte relacional
+├── tests/              # Testes unitários e de integração
+│   ├── test_rogue_class.py
+│   ├── test_sqlite_persistence.py
+│   └── test_api_routes.py
 ├── ui/                 # Camada de apresentação (isolada do domínio)
 │   └── console_ui.py   # Interface de console — pronta para ser trocada
-└── main.py             # Entry point
+└── main.py             # Entry point do console
 ```
 
 ### Princípios aplicados (Object Calisthenics)
@@ -89,7 +107,7 @@ Tower-Of-Lucas/
 ## 🧪 Testando
 
 ```bash
-# Executar todos os testes unitários
+# Executar todos os testes unitários e de integração API/SQLite
 python3 -m unittest discover -s tests
 
 # Smoke test rápido no console
@@ -109,11 +127,12 @@ print(c.summary())
 - [x] Engine de combate por turnos
 - [x] Sistema de classes e raças
 - [x] Inventário com raridades (Comum → Épico)
-- [x] Saves em JSON
 - [x] Refatoração com Object Calisthenics
-- [x] Suíte de testes unitários automatizados
+- [x] Suíte de testes unitários e de API
 - [x] Nova classe de personagem (Ladino)
-- [ ] Frontend web (FastAPI + React ou Pygame)
+- [x] Persistência relacional em SQLite
+- [x] API REST com FastAPI (endpoints OpenAPI/Swagger)
+- [ ] Frontend web (React ou Pygame)
 - [ ] Mais raças e monstros
 - [ ] Sistema de habilidades passivas
 
