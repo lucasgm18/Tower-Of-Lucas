@@ -55,6 +55,17 @@ def _apply_arcane_shield(character: Character, enemy_stats: Stats, _: int) -> tu
     return character, enemy_stats, "Escudo Arcano ativado! Proximo ataque sera absorvido."
 
 
+def _apply_sneak_attack(character: Character, enemy_stats: Stats, enemy_defense: int) -> tuple[Character, Stats, str]:
+    eff = character.effective_stats()
+    damage = max(1, (eff.atk + eff.speed) - (enemy_defense // 2))
+    return character, _damage_enemy(enemy_stats, damage), f"Ataque Furtivo! {damage} de dano preciso!"
+
+
+def _apply_shadow_step(character: Character, enemy_stats: Stats, _: int) -> tuple[Character, Stats, str]:
+    restored = character.restore_mana(5)
+    return restored, enemy_stats, "Passo das Sombras ativado! Proximo ataque sera evitado."
+
+
 def _apply_generic(character: Character, enemy_stats: Stats, enemy_defense: int) -> tuple[Character, Stats, str]:
     damage = _resolve_attack(character.effective_stats().atk, enemy_defense)
     return character, _damage_enemy(enemy_stats, damage), f"{damage} de dano."
@@ -65,6 +76,8 @@ _SKILL_DISPATCH: dict[SkillType, SkillEffect] = {
     SkillType.DEFENSIVE_STANCE: _apply_defensive_stance,
     SkillType.FIREBALL:         _apply_fireball,
     SkillType.ARCANE_SHIELD:    _apply_arcane_shield,
+    SkillType.SNEAK_ATTACK:     _apply_sneak_attack,
+    SkillType.SHADOW_STEP:      _apply_shadow_step,
     SkillType.GENERIC:          _apply_generic,
 }
 
@@ -109,7 +122,7 @@ def _player_turn(
     if choice == "2" and available_skills:
         skill_index = ui.pick_skill(available_skills)
         char, enemy, msg = _use_skill(character, enemy_stats, enemy_defense, available_skills[skill_index])
-        new_shield = arcane_shield or "Escudo Arcano" in msg
+        new_shield = arcane_shield or "Escudo Arcano" in msg or "Passo das Sombras" in msg
         return char, enemy, msg, new_shield
 
     damage = _resolve_attack(character.effective_stats().atk, enemy_defense)
@@ -149,7 +162,7 @@ def run_combat(
         enemy_damage = _resolve_attack(current_enemy.atk, effective_defense)
 
         if arcane_shield:
-            ui.show_message(f"{enemy_name} atacou, mas o Escudo Arcano absorveu o golpe!")
+            ui.show_message(f"{enemy_name} atacou, mas o ataque foi totalmente evitado!")
             arcane_shield = False
         else:
             current_char = current_char.take_damage(enemy_damage)

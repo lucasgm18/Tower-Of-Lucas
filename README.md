@@ -29,6 +29,7 @@ python3 main.py
 |---|---|---|---|---|---|---|
 | **Guerreiro** | 60 | 8 | 5 | 5 | 0 | Golpe Pesado, Postura Defensiva |
 | **Mago** | 40 | 5 | 2 | 7 | 30 | Bola de Fogo, Escudo Arcano |
+| **Ladino** | 45 | 7 | 3 | 9 | 15 | Ataque Furtivo, Passo das Sombras |
 
 ## 🧬 Raças
 
@@ -104,7 +105,7 @@ print(c.summary())
 - [x] Saves em JSON
 - [x] Refatoração com Object Calisthenics
 - [ ] Frontend web (FastAPI + React ou Pygame)
-- [ ] Mais classes (Ladino, Paladino)
+- [x] Mais classes (Ladino)
 - [ ] Mais raças e monstros
 - [ ] Sistema de habilidades passivas
 

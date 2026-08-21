@@ -7,6 +7,8 @@ class SkillType(Enum):
     DEFENSIVE_STANCE = auto()
     FIREBALL = auto()
     ARCANE_SHIELD = auto()
+    SNEAK_ATTACK = auto()
+    SHADOW_STEP = auto()
     GENERIC = auto()
 
 
@@ -98,7 +100,37 @@ MAGE = CharacterClass(
     ),
 )
 
+ROGUE = CharacterClass(
+    name="Ladino",
+    description="Mestre da agilidade e dos ataques furtivos. Rapido e letal.",
+    base_hp=45,
+    base_atk=7,
+    base_defense=3,
+    base_speed=9,
+    base_mana=15,
+    sprite="ladino.png",
+    skills=(
+        Skill(
+            name="Ataque Furtivo",
+            description="Golpe preciso baseado em ATK + VEL, ignorando metade da DEF.",
+            cooldown=3,
+            mana_cost=5,
+            skill_type=SkillType.SNEAK_ATTACK,
+            sprite="skill_ataque_furtivo.png",
+        ),
+        Skill(
+            name="Passo das Sombras",
+            description="Esquiva do proximo ataque inimigo e recupera 5 de Mana.",
+            cooldown=4,
+            mana_cost=5,
+            skill_type=SkillType.SHADOW_STEP,
+            sprite="skill_passo_das_sombras.png",
+        ),
+    ),
+)
+
 ALL_CLASSES: dict[str, CharacterClass] = {
     WARRIOR.name: WARRIOR,
     MAGE.name: MAGE,
+    ROGUE.name: ROGUE,
 }
