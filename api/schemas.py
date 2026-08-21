@@ -77,3 +77,45 @@ class CharacterResponse(BaseModel):
     mana: int
     max_mana: int
     inventory: List[ItemSchema]
+
+
+class MonsterSchema(BaseModel):
+    name: str
+    hp: int
+    max_hp: int
+    atk: int
+    defense: int
+    speed: int
+    exp_reward: int
+    gold_reward: int
+    sprite: str = ""
+
+
+class CombatStartRequest(BaseModel):
+    character_name: str
+    floor: int = 1
+
+
+class CombatStartResponse(BaseModel):
+    combat_id: str
+    character: CharacterResponse
+    monster: MonsterSchema
+
+
+class CombatActionRequest(BaseModel):
+    combat_id: str
+    action_type: str  # "attack" ou "skill"
+    skill_name: str = ""
+
+
+class CombatActionResponse(BaseModel):
+    player_damage_dealt: int
+    player_skill_used: str
+    enemy_damage_dealt: int
+    player_hp_after: int
+    enemy_hp_after: int
+    player_mana_after: int
+    victory: bool
+    character_defeated: bool
+    combat_log: List[str]
+

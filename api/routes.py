@@ -1,9 +1,14 @@
+import random
+import uuid
 from fastapi import APIRouter, HTTPException, status
-from typing import List
+from typing import List, Dict
 
-from data.classes import ALL_CLASSES
+from data.classes import ALL_CLASSES, Skill
 from data.races import ALL_RACES
+from data.monsters import MONSTERS_BY_FLOOR, Monster
 from core.character import Character
+from core.stats import Stats
+from core.combat import _resolve_attack, _damage_enemy, _use_skill
 from persistence.save import (
     save_character,
     load_character,
@@ -17,9 +22,15 @@ from api.schemas import (
     CharacterCreateRequest,
     CharacterResponse,
     ItemSchema,
+    MonsterSchema,
+    CombatStartRequest,
+    CombatStartResponse,
+    CombatActionRequest,
+    CombatActionResponse,
 )
 
 router = APIRouter(prefix="/api")
+ACTIVE_COMBATS: Dict[str, Dict] = {}
 
 
 @router.get("/classes", response_model=List[CharacterClassSchema])
@@ -167,3 +178,166 @@ def _build_character_response(character: Character) -> CharacterResponse:
         max_mana=mana.maximum,
         inventory=items,
     )
+
+
+@router.post("/combat/start", response_model=CombatStartResponse)
+def start_combat(req: CombatStartRequest) -> CombatStartResponse:
+    character = load_character(req.character_name)
+    if not character:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Personagem '{req.character_name}' nao encontrado.",
+        )
+
+    floor_monsters = MONSTERS_BY_FLOOR.get(req.floor, list(MONSTERS_BY_FLOOR[1]))
+    monster = random.choice(floor_monsters)
+
+    combat_id = f"combat_{uuid.uuid4().hex[:8]}"
+    ACTIVE_COMBATS[combat_id] = {
+        "combat_id": combat_id,
+        "character": character,
+        "monster": monster,
+        "floor": req.floor,
+        "arcane_shield": False,
+    }
+
+    monster_schema = MonsterSchema(
+        name=monster.name,
+        hp=monster.stats.hp,
+        max_hp=monster.stats.max_hp,
+        atk=monster.stats.atk,
+        defense=monster.stats.defense,
+        speed=monster.stats.speed,
+        exp_reward=monster.exp_reward,
+        gold_reward=monster.gold_reward,
+        sprite=monster.sprite,
+    )
+
+    return CombatStartResponse(
+        combat_id=combat_id,
+        character=_build_character_response(character),
+        monster=monster_schema,
+    )
+
+
+@router.post("/combat/action", response_model=CombatActionResponse)
+def combat_action(req: CombatActionRequest) -> CombatActionResponse:
+    session = ACTIVE_COMBATS.get(req.combat_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sessao de combate nao encontrada ou expirada.",
+        )
+
+    character: Character = session["character"]
+    monster: Monster = session["monster"]
+    arcane_shield: bool = session["arcane_shield"]
+
+    combat_log: List[str] = []
+    player_damage_dealt = 0
+    player_skill_used = "Ataque Basico"
+    defensive_stance = False
+
+    # Turno do Jogador
+    if req.action_type == "skill" and req.skill_name:
+        matched_skill = next(
+            (s for s in character.character_class.skills if s.name == req.skill_name),
+            None,
+        )
+        if not matched_skill or not character.skill_is_ready(matched_skill.name) or not character.has_mana(matched_skill.mana_cost):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Habilidade '{req.skill_name}' indisponivel ou mana insuficiente.",
+            )
+
+        player_skill_used = matched_skill.name
+        new_char, new_monster_stats, action_msg = _use_skill(
+            character, monster.stats, monster.stats.defense, matched_skill
+        )
+        player_damage_dealt = monster.stats.hp - new_monster_stats.hp
+        monster = Monster(
+            name=monster.name,
+            stats=new_monster_stats,
+            exp_reward=monster.exp_reward,
+            min_floor=monster.min_floor,
+            description=monster.description,
+            sprite=monster.sprite,
+            gold_reward=monster.gold_reward,
+        )
+        character = new_char
+        defensive_stance = "Postura Defensiva" in action_msg
+        arcane_shield = arcane_shield or ("Escudo Arcano" in action_msg or "Passo das Sombras" in action_msg)
+        combat_log.append(action_msg)
+    else:
+        player_damage_dealt = _resolve_attack(character.effective_stats().atk, monster.stats.defense)
+        new_monster_stats = _damage_enemy(monster.stats, player_damage_dealt)
+        monster = Monster(
+            name=monster.name,
+            stats=new_monster_stats,
+            exp_reward=monster.exp_reward,
+            min_floor=monster.min_floor,
+            description=monster.description,
+            sprite=monster.sprite,
+            gold_reward=monster.gold_reward,
+        )
+        character = character.tick_cooldowns()
+        if not character.mana_pool.is_empty():
+            character = character.restore_mana(2)
+        combat_log.append(f"{character.name} atacou {monster.name} por {player_damage_dealt} de dano!")
+
+    # Verificar se Monstro Morreu
+    victory = not monster.is_alive()
+    enemy_damage_dealt = 0
+
+    if victory:
+        combat_log.append(f"Voce derrotou {monster.name}! Ganhou {monster.exp_reward} XP e {monster.gold_reward} Ouro.")
+        updated_char, _ = character.gain_exp(monster.exp_reward)
+        updated_char = updated_char.earn_gold(monster.gold_reward)
+        save_character(updated_char)
+        del ACTIVE_COMBATS[req.combat_id]
+        return CombatActionResponse(
+            player_damage_dealt=player_damage_dealt,
+            player_skill_used=player_skill_used,
+            enemy_damage_dealt=0,
+            player_hp_after=updated_char.effective_stats().hp,
+            enemy_hp_after=0,
+            player_mana_after=updated_char.effective_mana_pool().current,
+            victory=True,
+            character_defeated=False,
+            combat_log=combat_log,
+        )
+
+    # Turno do Monstro
+    eff_def = character.effective_stats().defense * (2 if defensive_stance else 1)
+    raw_enemy_damage = _resolve_attack(monster.stats.atk, eff_def)
+
+    if arcane_shield:
+        combat_log.append(f"{monster.name} atacou, mas o dano foi absorvido pelo Escudo!")
+        arcane_shield = False
+        enemy_damage_dealt = 0
+    else:
+        enemy_damage_dealt = raw_enemy_damage
+        character = character.take_damage(enemy_damage_dealt)
+        combat_log.append(f"{monster.name} atacou {character.name} por {enemy_damage_dealt} de dano!")
+
+    char_defeated = not character.is_alive()
+    if char_defeated:
+        combat_log.append(f"{character.name} foi derrotado em combate...")
+        del ACTIVE_COMBATS[req.combat_id]
+    else:
+        session["character"] = character
+        session["monster"] = monster
+        session["arcane_shield"] = arcane_shield
+
+    return CombatActionResponse(
+        player_damage_dealt=player_damage_dealt,
+        player_skill_used=player_skill_used,
+        enemy_damage_dealt=enemy_damage_dealt,
+        player_hp_after=character.effective_stats().hp,
+        enemy_hp_after=monster.stats.hp,
+        player_mana_after=character.effective_mana_pool().current,
+        victory=False,
+        character_defeated=char_defeated,
+        combat_log=combat_log,
+    )
+

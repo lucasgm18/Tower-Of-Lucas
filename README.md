@@ -26,6 +26,18 @@ uvicorn api.app:app --reload
 ```
 Acesse a documentação interativa em **http://127.0.0.1:8000/docs** (Swagger UI).
 
+### 🎨 Modo Frontend Web 2D (React + Vite + Phaser)
+```bash
+# Em um terminal, inicie a API Python:
+uvicorn api.app:app --port 8000
+
+# Em outro terminal, inicie a interface web:
+cd frontend
+npm install
+npm run dev
+```
+Acesse a arena 2D em **http://localhost:5173**.
+
 ### Fluxo básico
 1. **Crie um personagem** — escolha classe e raça
 2. **Suba os andares** — enfrente 3 monstros por andar
