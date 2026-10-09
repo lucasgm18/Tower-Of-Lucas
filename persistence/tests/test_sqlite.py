@@ -37,6 +37,23 @@ class TestSQLitePersistence(unittest.TestCase):
             self.assertEqual(loaded.character_class.name, "Guerreiro")
             self.assertEqual(loaded.race.name, "Humano")
             self.assertEqual(loaded.effective_stats().hp, 60)
+            self.assertEqual(loaded.floor_progress, 0)
+            self.assertFalse(loaded.tower_completed)
+
+    def test_save_and_load_progression(self) -> None:
+        hero_name = "ProgressHero"
+        hero = Character.create(
+            hero_name, ALL_CLASSES["Ladino"], ALL_RACES["Humano"]
+        )
+        hero = hero._with(current_floor=5, floor_progress=2, tower_completed=True)
+        save_character(hero, db_path=TEMP_DB_PATH)
+
+        loaded = load_character(hero_name, db_path=TEMP_DB_PATH)
+        self.assertIsNotNone(loaded)
+        if loaded:
+            self.assertEqual(loaded.current_floor, 5)
+            self.assertEqual(loaded.floor_progress, 2)
+            self.assertTrue(loaded.tower_completed)
 
     def test_list_saved_characters_sqlite(self) -> None:
         c1 = Character.create("RogueOne", ALL_CLASSES["Ladino"], ALL_RACES["Humano"])

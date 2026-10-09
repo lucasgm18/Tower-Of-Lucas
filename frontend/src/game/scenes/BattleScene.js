@@ -75,20 +75,28 @@ export default class BattleScene extends Phaser.Scene {
     this.heroUnit.playAttack(600, () => {
       // Impacto no monstro
       this.monsterUnit.playHit(player_damage_dealt);
+      eventBridge.emit('ENEMY_DAMAGED', {
+        enemyHp: turnData.enemy_hp_after,
+        damage: player_damage_dealt,
+      });
 
       // Se a vitória não ocorreu e o monstro contra-ataca
       if (!victory && enemy_damage_dealt >= 0) {
         this.time.delayedCall(400, () => {
           this.monsterUnit.playAttack(200, () => {
             this.heroUnit.playHit(enemy_damage_dealt);
+            eventBridge.emit('HERO_DAMAGED', {
+              heroHp: turnData.player_hp_after,
+              damage: enemy_damage_dealt,
+            });
             this.time.delayedCall(400, () => {
-              eventBridge.emit('TURN_ANIMATION_COMPLETE');
+              eventBridge.emit('TURN_ANIMATION_COMPLETE', turnData);
             });
           });
         });
       } else {
         this.time.delayedCall(500, () => {
-          eventBridge.emit('TURN_ANIMATION_COMPLETE');
+          eventBridge.emit('TURN_ANIMATION_COMPLETE', turnData);
         });
       }
     });

@@ -21,6 +21,8 @@ class Character:
     current_floor: int
     cooldowns: SkillCooldowns
     gold: Gold = None  # type: ignore
+    floor_progress: int = 0
+    tower_completed: bool = False
 
     def __post_init__(self) -> None:
         if self.gold is None:
@@ -47,6 +49,8 @@ class Character:
             current_floor=1,
             cooldowns=SkillCooldowns.from_skills(character_class.skills),
             gold=Gold.zero(),
+            floor_progress=0,
+            tower_completed=False,
         )
 
     def effective_stats(self) -> Stats:
@@ -96,7 +100,13 @@ class Character:
         return self._with(inventory=self.inventory.equip(item))
 
     def advance_floor(self) -> "Character":
-        return self._with(current_floor=self.current_floor + 1)
+        return self._with(current_floor=self.current_floor + 1, floor_progress=0)
+
+    def increment_floor_progress(self) -> "Character":
+        return self._with(floor_progress=self.floor_progress + 1)
+
+    def complete_tower(self) -> "Character":
+        return self._with(tower_completed=True)
 
     def tick_cooldowns(self) -> "Character":
         return self._with(cooldowns=self.cooldowns.tick())
@@ -122,6 +132,8 @@ class Character:
             current_floor=kwargs.get("current_floor", self.current_floor),
             cooldowns=kwargs.get("cooldowns", self.cooldowns),
             gold=kwargs.get("gold", self.gold),
+            floor_progress=kwargs.get("floor_progress", self.floor_progress),
+            tower_completed=kwargs.get("tower_completed", self.tower_completed),
         )
 
     def summary(self) -> str:

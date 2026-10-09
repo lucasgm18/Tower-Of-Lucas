@@ -121,11 +121,11 @@ Tower-Of-Lucas/
 ## 🧪 Testando
 
 ```bash
-# Executar todos os testes (co-localizados por módulo)
-python3 -m unittest discover -s . -p "test_*.py"
+# Executar todos os testes (com ambiente virtual ativado ou via .venv)
+.venv/bin/python -m unittest discover -s . -p "test_*.py"
 
 # Smoke test rápido no console
-python3 -c "
+.venv/bin/python -c "
 from core.character import Character
 from data.classes import ALL_CLASSES
 from data.races import ALL_RACES
@@ -146,7 +146,7 @@ print(c.summary())
 - [x] Nova classe de personagem (Ladino)
 - [x] Persistência relacional em SQLite
 - [x] API REST com FastAPI (endpoints OpenAPI/Swagger)
-- [ ] Frontend web (React ou Pygame)
+- [x] Frontend web 2D (React + Vite + Phaser)
 - [ ] Mais raças e monstros
 - [ ] Sistema de habilidades passivas
 

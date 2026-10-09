@@ -47,12 +47,13 @@ def run_camp(character: Character, floor: int) -> Character:
         choice = ui.show_camp_menu(current, can_rest=not already_rested)
         if choice == "1":
             current = _upgrade_item(current, ui)
-        elif choice == "2" and not already_rested:
+            continue
+        if choice == "2" and not already_rested:
             current = _rest(current, ui)
             already_rested = True
-        elif choice == "3":
+            continue
+        if choice == "3":
             break
-        else:
-            ui.show_message("Opcao invalida.")
+        ui.show_message("Opcao invalida.")
 
     return current

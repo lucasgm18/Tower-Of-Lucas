@@ -18,6 +18,17 @@ def get_connection(db_path: str = DEFAULT_DB_PATH) -> sqlite3.Connection:
     return conn
 
 
+def _migrate_db(conn: sqlite3.Connection) -> None:
+    cursor = conn.execute("PRAGMA table_info(characters);")
+    columns = [row["name"] for row in cursor.fetchall()]
+
+    if "floor_progress" not in columns:
+        conn.execute("ALTER TABLE characters ADD COLUMN floor_progress INTEGER NOT NULL DEFAULT 0;")
+
+    if "tower_completed" not in columns:
+        conn.execute("ALTER TABLE characters ADD COLUMN tower_completed INTEGER NOT NULL DEFAULT 0;")
+
+
 def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
     conn = get_connection(db_path)
     with conn:
@@ -37,6 +48,8 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
                 exp INTEGER NOT NULL DEFAULT 0,
                 level INTEGER NOT NULL DEFAULT 1,
                 current_floor INTEGER NOT NULL DEFAULT 1,
+                floor_progress INTEGER NOT NULL DEFAULT 0,
+                tower_completed INTEGER NOT NULL DEFAULT 0,
                 skill_cooldowns TEXT NOT NULL DEFAULT '{}',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -59,4 +72,5 @@ def init_db(db_path: str = DEFAULT_DB_PATH) -> None:
                 FOREIGN KEY (character_name) REFERENCES characters(name) ON DELETE CASCADE
             );
         """)
+        _migrate_db(conn)
     conn.close()

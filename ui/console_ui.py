@@ -195,10 +195,8 @@ class ConsoleUI:
         items = character.inventory.all_items()
         print(f"\n  Ouro atual: {character.gold}")
         print("\n  [1] Melhorar um item  (custa ouro)")
-        if can_rest:
-            print("  [2] Descansar         (+30% HP, gratis)")
-        else:
-            print("  [2] Descansar         (ja descansou)")
+        rest_label = "  [2] Descansar         (+30% HP, gratis)" if can_rest else "  [2] Descansar         (ja descansou)"
+        print(rest_label)
         print("  [3] Continuar a subir")
         return self.get_input("> ")
 
@@ -210,13 +208,13 @@ class ConsoleUI:
         print(f"\n  Ouro atual: {character.gold}")
         print("\n  Qual item deseja melhorar?\n")
         for i, item in enumerate(items, 1):
-            if item.can_upgrade():
-                cost = item.upgrade_cost()
-                next_rarity = item.rarity.next_rarity()
-                can = "✓" if character.gold.can_afford(cost) else "✗"
-                print(f"    [{i}] {item}  |  {item.rarity.value} → {next_rarity.value}  |  Custo: {cost} ouro  [{can}]")
-            else:
+            if not item.can_upgrade():
                 print(f"    [{i}] {item}  |  [MAX]")
+                continue
+            cost = item.upgrade_cost()
+            next_rarity = item.rarity.next_rarity()
+            can = "✓" if character.gold.can_afford(cost) else "✗"
+            print(f"    [{i}] {item}  |  {item.rarity.value} → {next_rarity.value}  |  Custo: {cost} ouro  [{can}]")
         print(f"    [0] Voltar")
         while True:
             raw = self.get_input("Escolha: ")

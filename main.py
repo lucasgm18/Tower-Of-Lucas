@@ -73,8 +73,12 @@ def _play(ui: ConsoleUI) -> None:
     if not character:
         return
 
+    if character.tower_completed:
+        ui.show_message("Este heroi ja conquistou a Tower of Lucas!")
+        return
+
     current = character
-    while current and current.current_floor <= 10:
+    while current and current.current_floor <= 10 and not current.tower_completed:
         result = run_floor(current, current.current_floor)
         if result is None:
             delete_character(current.name)
@@ -82,7 +86,7 @@ def _play(ui: ConsoleUI) -> None:
         current = result
         save_character(current)
 
-    if current and current.current_floor > 10:
+    if current and current.tower_completed:
         ui.show_message("Voce conquistou a Tower of Lucas. Lenda eterna!")
 
 

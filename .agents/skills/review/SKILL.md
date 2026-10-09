@@ -1,8 +1,9 @@
 ---
-description: Perform a strict independent code review against the approved plan, architecture, tests, and code quality rules without modifying source code
+name: review
+description: Perform a strict independent code review against the approved plan, architecture, tests, and code quality rules without modifying source code.
 ---
 
-# Workflow: REVIEW
+# Review
 
 ## Role
 

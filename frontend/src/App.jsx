@@ -14,6 +14,8 @@ export default function App() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [combatLog, setCombatLog] = useState([]);
   const [isFinished, setIsFinished] = useState(false);
+  const [floorCompleted, setFloorCompleted] = useState(false);
+  const [towerCompleted, setTowerCompleted] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,9 +56,11 @@ export default function App() {
       setCharacterState(session.character);
       setMonsterState(session.monster);
       setCombatLog([
-        `Batalha Iniciada! ${session.monster.name} apareceu no Andar ${session.character.current_floor}.`,
+        `Batalha Iniciada! ${session.monster.name} apareceu no Andar ${session.character.current_floor} (Encontro ${session.encounter_index}/${session.total_encounters}).`,
       ]);
       setIsFinished(false);
+      setFloorCompleted(false);
+      setTowerCompleted(false);
       setShowModal(false);
 
       // Emitir evento para o Phaser posicionar sprites
@@ -76,19 +80,38 @@ export default function App() {
     try {
       const res = await executeCombatAction(combatSession.combat_id, actionType, skillName);
 
-      // Emitir animações no Phaser
-      eventBridge.emit('PLAY_TURN_ANIMATIONS', res);
+      // Atualizar Mana e Skills imediatamente se foi gasto ou recuperado
+      if (res.character) {
+        setCharacterState((prev) => ({
+          ...prev,
+          mana: res.character.mana,
+          skills: res.character.skills,
+        }));
+      } else {
+        setCharacterState((prev) => ({
+          ...prev,
+          mana: res.player_mana_after,
+        }));
+      }
 
-      // Esperar animação do Phaser terminar antes de atualizar estado no HUD React
-      const onAnimationDone = async () => {
+      const onEnemyDamaged = (data) => {
+        setMonsterState((prev) => (prev ? { ...prev, hp: data.enemyHp } : null));
+      };
+
+      const onHeroDamaged = (data) => {
+        setCharacterState((prev) => (prev ? { ...prev, hp: data.heroHp } : null));
+      };
+
+      // Esperar animação do Phaser terminar antes de finalizar o turno no HUD React
+      const onAnimationDone = () => {
+        eventBridge.off('ENEMY_DAMAGED', onEnemyDamaged);
+        eventBridge.off('HERO_DAMAGED', onHeroDamaged);
         eventBridge.off('TURN_ANIMATION_COMPLETE', onAnimationDone);
 
-        // Buscar estado atualizado e oficial do personagem no backend
-        try {
-          const charDetails = await fetchCharacterDetails(characterState.name);
-          setCharacterState(charDetails);
-        } catch {
-          // Fallback caso a requisição de detalhes falhe
+        // Atualizar estado definitivo do personagem e do monstro
+        if (res.character) {
+          setCharacterState(res.character);
+        } else {
           setCharacterState((prev) => ({
             ...prev,
             hp: res.player_hp_after,
@@ -105,12 +128,19 @@ export default function App() {
 
         if (res.victory || res.character_defeated) {
           setIsFinished(true);
+          setFloorCompleted(!!res.floor_completed);
+          setTowerCompleted(!!res.tower_completed);
         }
 
         setIsAnimating(false);
       };
 
+      eventBridge.on('ENEMY_DAMAGED', onEnemyDamaged);
+      eventBridge.on('HERO_DAMAGED', onHeroDamaged);
       eventBridge.on('TURN_ANIMATION_COMPLETE', onAnimationDone);
+
+      // Emitir animações no Phaser
+      eventBridge.emit('PLAY_TURN_ANIMATIONS', res);
     } catch (err) {
       setError(err.message || 'Erro ao processar ação de combate.');
       setIsAnimating(false);
@@ -165,6 +195,11 @@ export default function App() {
         <BattleHUD
           character={characterState}
           monster={monsterState}
+          encounterIndex={combatSession.encounter_index}
+          totalEncounters={combatSession.total_encounters}
+          isBoss={combatSession.is_boss}
+          floorCompleted={floorCompleted}
+          towerCompleted={towerCompleted}
           onAction={handleCombatAction}
           isAnimating={isAnimating}
           combatLog={combatLog}

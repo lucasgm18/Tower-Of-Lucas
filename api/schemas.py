@@ -73,6 +73,8 @@ class CharacterResponse(BaseModel):
     level: int
     exp: int
     current_floor: int
+    floor_progress: int = 0
+    tower_completed: bool = False
     gold: int
     hp: int
     max_hp: int
@@ -102,11 +104,13 @@ class CombatStartRequest(BaseModel):
     floor: Optional[int] = None
 
 
-
 class CombatStartResponse(BaseModel):
     combat_id: str
     character: CharacterResponse
     monster: MonsterSchema
+    encounter_index: int = 1
+    total_encounters: int = 3
+    is_boss: bool = False
 
 
 class CombatActionRequest(BaseModel):
@@ -123,6 +127,9 @@ class CombatActionResponse(BaseModel):
     enemy_hp_after: int
     player_mana_after: int
     victory: bool
+    floor_completed: bool = False
+    tower_completed: bool = False
     character_defeated: bool
     combat_log: List[str]
+    character: Optional[CharacterResponse] = None
 

@@ -164,9 +164,10 @@ def run_combat(
         if arcane_shield:
             ui.show_message(f"{enemy_name} atacou, mas o ataque foi totalmente evitado!")
             arcane_shield = False
-        else:
-            current_char = current_char.take_damage(enemy_damage)
-            ui.show_message(f"{enemy_name} causou {enemy_damage} de dano!")
+            continue
+
+        current_char = current_char.take_damage(enemy_damage)
+        ui.show_message(f"{enemy_name} causou {enemy_damage} de dano!")
 
     if current_char.is_alive():
         old_level = current_char.exp_system.level

@@ -28,6 +28,7 @@ def _run_monster_gauntlet(character: Character, floor: int, ui: ConsoleUI) -> Ch
             return None
         current = result.character
         current = _maybe_drop_item(current, floor, ui)
+        current = current.increment_floor_progress()
         input("\n  [Enter para continuar...]")
 
     return current
@@ -60,7 +61,7 @@ def _run_boss(character: Character, floor: int, ui: ConsoleUI) -> Character | No
         return None
     if floor == 10:
         ui.show_victory()
-    return result.character
+    return result.character.increment_floor_progress()
 
 
 def run_floor(character: Character, floor: int) -> Character | None:
@@ -78,6 +79,10 @@ def run_floor(character: Character, floor: int) -> Character | None:
         if after_boss is None:
             ui.show_death_screen(character.name)
             return None
+
+    if floor == 10:
+        completed = after_boss.complete_tower()
+        return completed
 
     advanced = after_boss.advance_floor()
 

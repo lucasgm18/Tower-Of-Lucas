@@ -1,8 +1,9 @@
 ---
-description: Execute an approved implementation plan, run all available validation checks, and prepare the code for strict review
+name: implement
+description: Execute an approved implementation plan, run all available validation checks, and prepare the code for strict review.
 ---
 
-# Workflow: IMPLEMENT
+# Implement
 
 ## Role
 

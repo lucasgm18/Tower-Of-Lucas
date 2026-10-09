@@ -46,6 +46,7 @@ export async function deleteCharacter(name) {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error('Falha ao deletar personagem');
+  if (res.status === 204) return null;
   return res.json();
 }
 

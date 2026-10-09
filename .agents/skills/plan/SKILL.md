@@ -1,12 +1,9 @@
 ---
-description: 
+name: plan
+description: Analyze a requested change and create a detailed implementation plan without modifying source code.
 ---
 
----
-description: Analyze a requested change and create an implementation plan without modifying source code
----
-
-# Workflow: PLAN
+# Plan
 
 ## Role
 

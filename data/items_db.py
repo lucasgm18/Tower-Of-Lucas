@@ -17,6 +17,12 @@ WOODEN_STAFF = Item(
     description="Galho de carvalho moldado às pressas.",
     sprite="cajado_madeira.png",
 )
+WOODEN_DAGGER = Item(
+    name="Adaga de Madeira", slot=ItemSlot.WEAPON, rarity=Rarity.COMMON,
+    hp_bonus=0, atk_bonus=2, defense_bonus=0, speed_bonus=1,
+    description="Lamina ágil tosca de madeira.",
+    sprite="adaga_madeira.png",
+)
 
 # -- Incomum
 COPPER_SWORD = Item(
@@ -30,6 +36,12 @@ OAK_STAFF = Item(
     hp_bonus=0, atk_bonus=4, defense_bonus=0, speed_bonus=1,
     description="Canal arcano básico. Amplifica magias levemente.",
     sprite="cajado_carvalho.png",
+)
+COPPER_DAGGER = Item(
+    name="Adaga de Cobre", slot=ItemSlot.WEAPON, rarity=Rarity.UNCOMMON,
+    hp_bonus=0, atk_bonus=3, defense_bonus=0, speed_bonus=2,
+    description="Lamina leve de cobre, veloz e precisa.",
+    sprite="adaga_cobre.png",
 )
 
 # -- Raro
@@ -45,6 +57,12 @@ ARCANE_STAFF = Item(
     description="Cristal arcano incrustado. Amplifica magias significativamente.",
     sprite="cajado_arcano.png",
 )
+STEEL_DAGGER = Item(
+    name="Adaga de Aco", slot=ItemSlot.WEAPON, rarity=Rarity.RARE,
+    hp_bonus=0, atk_bonus=6, defense_bonus=0, speed_bonus=3,
+    description="Aço temperado para ataques rápidos e furtivos.",
+    sprite="adaga_aco.png",
+)
 
 # -- Épico
 ABYSSAL_BLADE = Item(
@@ -58,6 +76,12 @@ VOID_STAFF = Item(
     hp_bonus=0, atk_bonus=14, defense_bonus=0, speed_bonus=3,
     description="Canalizador de magia pura. Queima a mente de quem o usa.",
     sprite="cajado_vazio.png",
+)
+SHADOW_DAGGER = Item(
+    name="Adaga das Sombras", slot=ItemSlot.WEAPON, rarity=Rarity.EPIC,
+    hp_bonus=0, atk_bonus=11, defense_bonus=0, speed_bonus=6,
+    description="Forjada na escuridão da torre. Corta no silêncio.",
+    sprite="adaga_sombras.png",
 )
 
 # ═══════════════════════════════════════════════════════
@@ -207,21 +231,23 @@ RING_OF_LUCAS = Item(
 from core.items import Item  # noqa — já importado acima, só garante
 
 FLOOR_DROPS: dict[int, list[Item]] = {
-    1:  [WOODEN_SWORD, WOODEN_STAFF, CLOTH_ARMOR, CLOTH_BOOTS, CLOTH_HOOD, COPPER_RING],
-    2:  [WOODEN_SWORD, WOODEN_STAFF, CLOTH_ARMOR, LEATHER_BOOTS, CLOTH_HOOD, COPPER_RING],
-    3:  [COPPER_SWORD, OAK_STAFF, LEATHER_ARMOR, LEATHER_BOOTS, LEATHER_HELMET, RING_VITALITY],
-    4:  [COPPER_SWORD, OAK_STAFF, LEATHER_ARMOR, LEATHER_BOOTS, LEATHER_HELMET, RING_VITALITY],
-    5:  [IRON_SWORD, ARCANE_STAFF, CHAIN_MAIL, MAGE_ROBE, IRON_BOOTS, ARCANE_HOOD, RING_POWER],
-    6:  [IRON_SWORD, ARCANE_STAFF, CHAIN_MAIL, MAGE_ROBE, SWIFT_BOOTS, IRON_HELMET, RING_POWER],
-    7:  [IRON_SWORD, ARCANE_STAFF, CHAIN_MAIL, MAGE_ROBE, SWIFT_BOOTS, RING_WARDING],
-    8:  [ABYSSAL_BLADE, VOID_STAFF, SHADOW_PLATE, SWIFT_BOOTS, CROWN_OF_ABYSS, RING_WARDING],
-    9:  [ABYSSAL_BLADE, VOID_STAFF, SHADOW_PLATE, SHADOW_BOOTS, CROWN_OF_ABYSS, RING_WARDING],
-    10: [ABYSSAL_BLADE, VOID_STAFF, SHADOW_PLATE, SHADOW_BOOTS, CROWN_OF_ABYSS, RING_OF_LUCAS],
+    1:  [WOODEN_SWORD, WOODEN_STAFF, WOODEN_DAGGER, CLOTH_ARMOR, CLOTH_BOOTS, CLOTH_HOOD, COPPER_RING],
+    2:  [WOODEN_SWORD, WOODEN_STAFF, WOODEN_DAGGER, CLOTH_ARMOR, LEATHER_BOOTS, CLOTH_HOOD, COPPER_RING],
+    3:  [COPPER_SWORD, OAK_STAFF, COPPER_DAGGER, LEATHER_ARMOR, LEATHER_BOOTS, LEATHER_HELMET, RING_VITALITY],
+    4:  [COPPER_SWORD, OAK_STAFF, COPPER_DAGGER, LEATHER_ARMOR, LEATHER_BOOTS, LEATHER_HELMET, RING_VITALITY],
+    5:  [IRON_SWORD, ARCANE_STAFF, STEEL_DAGGER, CHAIN_MAIL, MAGE_ROBE, IRON_BOOTS, ARCANE_HOOD, RING_POWER],
+    6:  [IRON_SWORD, ARCANE_STAFF, STEEL_DAGGER, CHAIN_MAIL, MAGE_ROBE, SWIFT_BOOTS, IRON_HELMET, RING_POWER],
+    7:  [IRON_SWORD, ARCANE_STAFF, STEEL_DAGGER, CHAIN_MAIL, MAGE_ROBE, SWIFT_BOOTS, RING_WARDING],
+    8:  [ABYSSAL_BLADE, VOID_STAFF, SHADOW_DAGGER, SHADOW_PLATE, SWIFT_BOOTS, CROWN_OF_ABYSS, RING_WARDING],
+    9:  [ABYSSAL_BLADE, VOID_STAFF, SHADOW_DAGGER, SHADOW_PLATE, SHADOW_BOOTS, CROWN_OF_ABYSS, RING_WARDING],
+    10: [ABYSSAL_BLADE, VOID_STAFF, SHADOW_DAGGER, SHADOW_PLATE, SHADOW_BOOTS, CROWN_OF_ABYSS, RING_OF_LUCAS],
 }
 
 ALL_ITEMS: list[Item] = [
-    WOODEN_SWORD, WOODEN_STAFF, COPPER_SWORD, OAK_STAFF,
-    IRON_SWORD, ARCANE_STAFF, ABYSSAL_BLADE, VOID_STAFF,
+    WOODEN_SWORD, WOODEN_STAFF, WOODEN_DAGGER,
+    COPPER_SWORD, OAK_STAFF, COPPER_DAGGER,
+    IRON_SWORD, ARCANE_STAFF, STEEL_DAGGER,
+    ABYSSAL_BLADE, VOID_STAFF, SHADOW_DAGGER,
     CLOTH_ARMOR, LEATHER_ARMOR, CHAIN_MAIL, MAGE_ROBE, SHADOW_PLATE,
     CLOTH_HOOD, LEATHER_HELMET, IRON_HELMET, ARCANE_HOOD, CROWN_OF_ABYSS,
     CLOTH_BOOTS, LEATHER_BOOTS, IRON_BOOTS, SWIFT_BOOTS, SHADOW_BOOTS,

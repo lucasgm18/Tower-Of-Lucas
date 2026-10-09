@@ -21,8 +21,9 @@ def save_character(character: Character, db_path: str = DEFAULT_DB_PATH) -> None
             """
             INSERT INTO characters (
                 name, class_name, race_name, hp, max_hp, atk, defense, speed,
-                mana, max_mana, gold, exp, level, current_floor, skill_cooldowns
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                mana, max_mana, gold, exp, level, current_floor, floor_progress,
+                tower_completed, skill_cooldowns
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 class_name = excluded.class_name,
                 race_name = excluded.race_name,
@@ -37,6 +38,8 @@ def save_character(character: Character, db_path: str = DEFAULT_DB_PATH) -> None
                 exp = excluded.exp,
                 level = excluded.level,
                 current_floor = excluded.current_floor,
+                floor_progress = excluded.floor_progress,
+                tower_completed = excluded.tower_completed,
                 skill_cooldowns = excluded.skill_cooldowns
             """,
             (
@@ -54,6 +57,8 @@ def save_character(character: Character, db_path: str = DEFAULT_DB_PATH) -> None
                 character.exp_system.current_exp,
                 character.exp_system.level,
                 character.current_floor,
+                character.floor_progress,
+                1 if character.tower_completed else 0,
                 json.dumps(character.cooldowns.as_dict()),
             ),
         )
@@ -112,6 +117,9 @@ def load_character(name: str, db_path: str = DEFAULT_DB_PATH) -> Character | Non
     cooldowns = SkillCooldowns.from_dict(json.loads(row["skill_cooldowns"]))
     gold = Gold(amount=row["gold"])
 
+    floor_progress = row["floor_progress"] if "floor_progress" in row.keys() else 0
+    tower_completed = bool(row["tower_completed"]) if "tower_completed" in row.keys() else False
+
     item_cursor = conn.execute(
         "SELECT * FROM inventory_items WHERE character_name = ?", (name,)
     )
@@ -151,6 +159,8 @@ def load_character(name: str, db_path: str = DEFAULT_DB_PATH) -> Character | Non
         current_floor=row["current_floor"],
         cooldowns=cooldowns,
         gold=gold,
+        floor_progress=floor_progress,
+        tower_completed=tower_completed,
     )
 
 
